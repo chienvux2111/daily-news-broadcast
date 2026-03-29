@@ -1,0 +1,92 @@
+/**
+ * Presets — Pre-configured source bundles
+ * Mỗi preset trả về SourcePlugin[] — spread vào .addSource()
+ */
+
+import { createRSSSources } from '../sources/rss.js';
+import { HackerNewsSource } from '../sources/hackernews.js';
+import { RedditSource } from '../sources/reddit.js';
+import { DevToSource } from '../sources/devto.js';
+
+// ============================================
+// Big Tech Engineering Blogs (15 sources)
+// ============================================
+
+export function bigTechBlogs() {
+  return createRSSSources([
+    { id: 'uber',       name: 'Uber Engineering',       feedUrl: 'https://www.uber.com/blog/engineering/rss/',          icon: '🚗', category: 'Big Tech' },
+    { id: 'meta',       name: 'Meta Engineering',        feedUrl: 'https://engineering.fb.com/feed/',                    icon: '🔵', category: 'Big Tech' },
+    { id: 'netflix',    name: 'Netflix Tech Blog',       feedUrl: 'https://netflixtechblog.com/feed',                   icon: '🎬', category: 'Big Tech' },
+    { id: 'aws',        name: 'AWS Architecture',        feedUrl: 'https://aws.amazon.com/blogs/architecture/feed/',     icon: '☁️', category: 'Cloud' },
+    { id: 'cloudflare', name: 'Cloudflare Blog',         feedUrl: 'https://blog.cloudflare.com/rss/',                   icon: '🔶', category: 'Cloud' },
+    { id: 'github',     name: 'GitHub Blog',             feedUrl: 'https://github.blog/feed/',                          icon: '🐙', category: 'Developer Tools' },
+    { id: 'google-dev', name: 'Google Developers',       feedUrl: 'https://developers.googleblog.com/feeds/posts/default?alt=rss', icon: '🔍', category: 'Big Tech' },
+    { id: 'stripe',     name: 'Stripe Engineering',      feedUrl: 'https://stripe.com/blog/feed.rss',                   icon: '💳', category: 'Fintech' },
+    { id: 'airbnb',     name: 'Airbnb Tech Blog',        feedUrl: 'https://medium.com/feed/airbnb-engineering',         icon: '🏠', category: 'Big Tech' },
+    { id: 'linkedin',   name: 'LinkedIn Engineering',    feedUrl: 'https://engineering.linkedin.com/blog.rss',           icon: '💼', category: 'Big Tech' },
+    { id: 'spotify',    name: 'Spotify Engineering',     feedUrl: 'https://engineering.atspotify.com/feed/',             icon: '🎵', category: 'Big Tech' },
+    { id: 'dropbox',    name: 'Dropbox Tech Blog',       feedUrl: 'https://dropbox.tech/feed',                          icon: '📦', category: 'Big Tech' },
+    { id: 'shopify',    name: 'Shopify Engineering',     feedUrl: 'https://shopify.engineering/blog/feed',               icon: '🛒', category: 'E-commerce' },
+    { id: 'vercel',     name: 'Vercel Blog',             feedUrl: 'https://vercel.com/atom',                             icon: '▲',  category: 'Developer Tools' },
+    { id: 'mozilla',    name: 'Mozilla Hacks',           feedUrl: 'https://hacks.mozilla.org/feed/',                     icon: '🦊', category: 'Web Platform' },
+  ]);
+}
+
+// ============================================
+// Community Sources (HN, Reddit, Dev.to)
+// ============================================
+
+export function communitySources() {
+  return [
+    new HackerNewsSource({ filter: 'front_page', minPoints: 100 }),
+    new RedditSource({ subreddit: 'programming', minUpvotes: 200 }),
+    new RedditSource({ subreddit: 'ExperiencedDevs', minUpvotes: 100 }),
+    new DevToSource({ minReactions: 50 }),
+  ];
+}
+
+// ============================================
+// AI / ML Blogs
+// ============================================
+
+export function aiMLBlogs() {
+  return [
+    ...createRSSSources([
+      { id: 'openai',     name: 'OpenAI Blog',         feedUrl: 'https://openai.com/blog/rss.xml',          icon: '🤖', category: 'AI/ML' },
+      { id: 'deepmind',   name: 'Google DeepMind',      feedUrl: 'https://deepmind.google/blog/rss.xml',     icon: '🧠', category: 'AI/ML' },
+      { id: 'huggingface', name: 'Hugging Face Blog',   feedUrl: 'https://huggingface.co/blog/feed.xml',     icon: '🤗', category: 'AI/ML' },
+    ]),
+    new RedditSource({ subreddit: 'MachineLearning', minUpvotes: 150 }),
+    new HackerNewsSource({ query: 'AI LLM', minPoints: 80 }),
+  ];
+}
+
+// ============================================
+// DevOps Sources
+// ============================================
+
+export function devopsSources() {
+  return [
+    ...createRSSSources([
+      { id: 'cloudflare-devops', name: 'Cloudflare Blog',  feedUrl: 'https://blog.cloudflare.com/rss/',         icon: '🔶', category: 'DevOps' },
+      { id: 'hashicorp',         name: 'HashiCorp Blog',   feedUrl: 'https://www.hashicorp.com/blog/feed.xml',   icon: '🔧', category: 'DevOps' },
+    ]),
+    new RedditSource({ subreddit: 'devops', minUpvotes: 100 }),
+    new DevToSource({ tag: 'devops', minReactions: 30 }),
+  ];
+}
+
+// ============================================
+// Mobile Development Sources
+// ============================================
+
+export function mobileSources() {
+  return [
+    ...createRSSSources([
+      { id: 'android-dev', name: 'Android Developers',  feedUrl: 'https://feeds.feedburner.com/blogspot/hsDu',  icon: '🤖', category: 'Mobile' },
+      { id: 'swift-blog',  name: 'Swift.org Blog',      feedUrl: 'https://www.swift.org/atom.xml',              icon: '🍎', category: 'Mobile' },
+    ]),
+    new RedditSource({ subreddit: 'androiddev', minUpvotes: 80 }),
+    new RedditSource({ subreddit: 'iOSProgramming', minUpvotes: 50 }),
+  ];
+}

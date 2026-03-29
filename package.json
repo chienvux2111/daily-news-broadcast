@@ -1,0 +1,28 @@
+{
+  "name": "news-engine",
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Plugin-based news aggregation engine. Any source, any AI, any output.",
+  "scripts": {
+    "start": "node src/adapters/node.js run",
+    "start:cron": "node src/adapters/node.js cron",
+    "preview": "node src/adapters/node.js preview",
+    "dev": "wrangler dev --config wrangler.toml",
+    "deploy:cf": "wrangler deploy --config wrangler.toml",
+    "docker:build": "docker build -t news-engine .",
+    "docker:run": "docker compose up -d"
+  },
+  "dependencies": {
+    "node-cron": "^3.0.3"
+  },
+  "optionalDependencies": {
+    "dotenv": "^16.4.0",
+    "redis": "^4.7.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

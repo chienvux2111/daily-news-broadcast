@@ -1,0 +1,15 @@
+name = "news-engine"
+main = "src/adapters/cloudflare.js"
+compatibility_date = "2024-01-01"
+
+[triggers]
+crons = ["0 7 * * *"]
+
+[[kv_namespaces]]
+binding = "NEWS_CACHE"
+id = "YOUR_KV_NAMESPACE_ID"
+
+[vars]
+MAX_ARTICLES_PER_SOURCE = "3"
+CONCURRENCY_LIMIT = "5"
+SUMMARY_LANGUAGE = "vi"
