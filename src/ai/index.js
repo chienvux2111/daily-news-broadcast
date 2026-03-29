@@ -11,5 +11,7 @@ export {
   ollama,
   openRouter,
   togetherAI,
+  qwen,
+  deepseek,
 } from './openai-compat.js';
 export { buildPrompt } from './_prompts.js';

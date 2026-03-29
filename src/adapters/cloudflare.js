@@ -5,8 +5,45 @@
 
 import { NewsEngine, CloudflareKVCache } from '../core/index.js';
 import { bigTechBlogs } from '../presets/index.js';
-import { ClaudeAI } from '../ai/index.js';
+import { ClaudeAI, openai, groq, gemini, qwen, deepseek, openRouter, togetherAI, OpenAICompatibleAI } from '../ai/index.js';
 import { TelegramOutput } from '../outputs/index.js';
+
+function createAI(env) {
+  const provider = (env.AI_PROVIDER || 'claude').toLowerCase();
+  const model = env.AI_MODEL || undefined;
+
+  switch (provider) {
+    case 'claude':
+    case 'anthropic':
+      return new ClaudeAI({ apiKey: env.ANTHROPIC_API_KEY, ...(model && { model }) });
+    case 'openai':
+      return openai(env.OPENAI_API_KEY, model || 'gpt-4o-mini');
+    case 'groq':
+      return groq(env.GROQ_API_KEY, model || 'llama-3.3-70b-versatile');
+    case 'gemini':
+    case 'google':
+      return gemini(env.GEMINI_API_KEY, model || 'gemini-2.0-flash');
+    case 'qwen':
+    case 'alibaba':
+    case 'dashscope':
+      return qwen(env.QWEN_API_KEY, model || 'qwen-plus');
+    case 'deepseek':
+      return deepseek(env.DEEPSEEK_API_KEY, model || 'deepseek-chat');
+    case 'openrouter':
+      return openRouter(env.OPENROUTER_API_KEY, model || 'anthropic/claude-3.5-sonnet');
+    case 'together':
+      return togetherAI(env.TOGETHER_API_KEY, model || 'meta-llama/Llama-3.3-70B-Instruct-Turbo');
+    case 'custom':
+      return new OpenAICompatibleAI({
+        apiKey: env.CUSTOM_AI_API_KEY,
+        baseUrl: env.CUSTOM_AI_BASE_URL,
+        model: model || env.CUSTOM_AI_MODEL || 'default',
+        name: env.CUSTOM_AI_NAME || 'Custom AI',
+      });
+    default:
+      throw new Error(`Unknown AI_PROVIDER: "${provider}"`);
+  }
+}
 
 function createEngine(env) {
   const engine = new NewsEngine();
@@ -15,7 +52,7 @@ function createEngine(env) {
   for (const source of bigTechBlogs()) engine.addSource(source);
 
   // AI
-  engine.useAI(new ClaudeAI({ apiKey: env.ANTHROPIC_API_KEY }));
+  engine.useAI(createAI(env));
 
   // Output
   engine.addOutput(new TelegramOutput({

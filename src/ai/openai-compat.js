@@ -125,3 +125,21 @@ export function gemini(apiKey, model = 'gemini-2.0-flash') {
     name: `Gemini (${model})`,
   });
 }
+
+/** Alibaba Qwen via DashScope OpenAI-compatible endpoint */
+export function qwen(apiKey, model = 'qwen-plus') {
+  return new OpenAICompatibleAI({
+    apiKey, model,
+    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    name: `Qwen (${model})`,
+  });
+}
+
+/** DeepSeek */
+export function deepseek(apiKey, model = 'deepseek-chat') {
+  return new OpenAICompatibleAI({
+    apiKey, model,
+    baseUrl: 'https://api.deepseek.com/v1',
+    name: `DeepSeek (${model})`,
+  });
+}
