@@ -13,6 +13,10 @@ function createAI(env) {
   const model = env.AI_MODEL || undefined;
 
   switch (provider) {
+    case 'none':
+    case 'off':
+    case 'skip':
+      return null;
     case 'claude':
     case 'anthropic':
       return new ClaudeAI({ apiKey: env.ANTHROPIC_API_KEY, ...(model && { model }) });
@@ -52,7 +56,8 @@ function createEngine(env) {
   for (const source of bigTechBlogs()) engine.addSource(source);
 
   // AI
-  engine.useAI(createAI(env));
+  const ai = createAI(env);
+  if (ai) engine.useAI(ai);
 
   // Output
   engine.addOutput(new TelegramOutput({

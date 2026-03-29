@@ -27,6 +27,11 @@ function createAI() {
   const model = env('AI_MODEL', undefined);
 
   switch (provider) {
+    case 'none':
+    case 'off':
+    case 'skip':
+      return null;
+
     case 'claude':
     case 'anthropic':
       return new ClaudeAI({
@@ -88,13 +93,14 @@ function createEngine() {
   requiredEnv('TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID');
 
   const ai = createAI();
-  console.log(`🤖 AI Provider: ${ai.name}`);
+  console.log(`🤖 AI Provider: ${ai ? ai.name : 'None (raw mode)'}`);
 
   const engine = new NewsEngine();
   for (const s of bigTechBlogs()) engine.addSource(s);
 
+  if (ai) engine.useAI(ai);
+
   return engine
-    .useAI(ai)
     .addOutput(new TelegramOutput({
       botToken: process.env.TELEGRAM_BOT_TOKEN,
       chatId: process.env.TELEGRAM_CHAT_ID,
