@@ -4,6 +4,8 @@ Plugin-based news aggregation engine. Fetch từ bất kỳ nguồn nào, tóm t
 
 **Zero lock-in.** Swap sources, AI models, output channels bằng 1 dòng code.
 
+> **v2.0** adds a **Multi-stream Dashboard** — configure multiple independent digests via a single JSON file and monitor them from a web UI.
+
 ## Architecture
 
 ```
@@ -15,10 +17,12 @@ Plugin-based news aggregation engine. Fetch từ bất kỳ nguồn nào, tóm t
 │  │ HTML Scraper   │──▶│ OpenAI      │──▶│ Slack         │ │
 │  │ Hacker News    │   │ Groq        │   │ Discord       │ │
 │  │ Reddit         │   │ Gemini      │   │ Email         │ │
-│  │ Dev.to         │   │ Ollama      │   │ Webhook       │ │
-│  │ JSON API (any) │   │ OpenRouter  │   │ Markdown File │ │
-│  │ [Your Plugin]  │   │ Together    │   │ [Your Plugin] │ │
-│  └────────────────┘   │ [Your own]  │   └───────────────┘ │
+│  │ Dev.to         │   │ Qwen        │   │ Webhook       │ │
+│  │ JSON API (any) │   │ DeepSeek    │   │ Markdown File │ │
+│  │ [Your Plugin]  │   │ Ollama      │   │ [Your Plugin] │ │
+│  └────────────────┘   │ OpenRouter  │   └───────────────┘ │
+│                       │ Together    │                       │
+│                       │ [Your own]  │                       │
 │                       └─────────────┘                       │
 │         ┌─ Cache ─────────┐   ┌─ Middleware ──────┐        │
 │         │ Memory          │   │ Filter by keyword │        │
@@ -43,16 +47,19 @@ cp .env.example .env
 
 ```bash
 # One-time run
-node src/adapters/node.js run
+npm start                          # or: node src/adapters/node.js run
 
 # Daemon mode with cron schedule
-node src/adapters/node.js cron
+npm run start:cron                 # or: node src/adapters/node.js cron
 
 # Preview (fetch + summarize, no send)
-node src/adapters/node.js preview
+npm run preview                    # or: node src/adapters/node.js preview
+
+# Multi-stream dashboard (see below)
+npm run dashboard                  # or: node src/dashboard/server.js
 
 # Deploy to Cloudflare Workers
-wrangler deploy
+npm run deploy:cf                  # or: wrangler deploy
 ```
 
 ### 3. Or use as library
@@ -96,7 +103,7 @@ src/
 │
 ├── ai/                          # AI summarization plugins
 │   ├── claude.js                # Anthropic Claude (native API)
-│   ├── openai-compat.js         # OpenAI-compatible: GPT, Groq, Gemini, Ollama, etc.
+│   ├── openai-compat.js         # OpenAI-compatible: GPT, Groq, Gemini, Qwen, DeepSeek, Ollama, etc.
 │   ├── _prompts.js              # Shared prompt templates (digest/bullet/thread/newsletter)
 │   └── index.js
 │
@@ -112,10 +119,19 @@ src/
 │   ├── cloudflare.js            # Cloudflare Worker (cron + HTTP)
 │   └── node.js                  # Node.js CLI + daemon mode
 │
-├── Dockerfile
-├── docker-compose.yml
-├── wrangler.toml
-└── .env.example
+└── dashboard/                   # Multi-stream web dashboard
+    ├── server.js                # Express server (API + SSE + static)
+    ├── scheduler.js             # Per-stream cron scheduling
+    ├── stream-runner.js         # Stream execution logic
+    ├── config-loader.js         # streams.config.json loader
+    └── public/                  # Frontend SPA
+
+# Repo root
+Dockerfile
+docker-compose.yml
+wrangler.toml
+streams.config.example.json
+.env.example
 ```
 
 ## Plugin System
@@ -170,6 +186,8 @@ Mọi source plugin trả về articles theo schema thống nhất:
 | `OpenAICompatibleAI` | `openai()` | OpenAI GPT models |
 | | `groq()` | Groq (ultra-fast inference) |
 | | `gemini()` | Google Gemini |
+| | `qwen()` | Alibaba Qwen (DashScope) |
+| | `deepseek()` | DeepSeek |
 | | `ollama()` | Ollama (local, offline) |
 | | `openRouter()` | OpenRouter (model marketplace) |
 | | `togetherAI()` | Together AI |
@@ -240,6 +258,22 @@ import { groq } from './src/ai/index.js';
 engine.useAI(groq('gsk_...'));
 ```
 
+### Swap AI — Qwen (Alibaba DashScope)
+
+```javascript
+import { qwen } from './src/ai/index.js';
+
+engine.useAI(qwen(process.env.QWEN_API_KEY, 'qwen-plus'));
+```
+
+### Swap AI — DeepSeek
+
+```javascript
+import { deepseek } from './src/ai/index.js';
+
+engine.useAI(deepseek(process.env.DEEPSEEK_API_KEY));
+```
+
 ### Swap AI — chạy offline với Ollama
 
 ```javascript
@@ -293,6 +327,71 @@ const result = await engine.run({ dryRun: true });
 console.log(result.content); // Xem digest content
 console.log(result.stats);   // { sources: 15, articles: 23, ... }
 ```
+
+## Multi-stream Dashboard
+
+The dashboard lets you define multiple independent digest **streams** in a single JSON config file and monitor them from a browser UI. Each stream has its own sources, AI provider, outputs, and cron schedule.
+
+### Setup
+
+```bash
+cp streams.config.example.json streams.config.json
+# Edit streams.config.json to define your streams
+npm run dashboard
+# Open http://localhost:3000
+```
+
+A custom port can be set with `DASHBOARD_PORT=8080`.
+
+### streams.config.json
+
+```json
+{
+  "streams": [
+    {
+      "id": "morning-tech-digest",
+      "name": "Morning Tech Digest",
+      "enabled": true,
+      "cron": "0 7 * * *",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "sources": [
+        { "type": "preset", "preset": "bigTechBlogs" },
+        { "type": "preset", "preset": "communitySources" },
+        { "type": "rss", "config": { "id": "k8s", "name": "Kubernetes Blog", "feedUrl": "https://kubernetes.io/feed.xml", "icon": "☸️" } },
+        { "type": "hackernews", "config": { "query": "AI", "minPoints": 50 } },
+        { "type": "reddit", "config": { "subreddit": "programming", "minUpvotes": 100 } }
+      ],
+      "ai": {
+        "provider": "claude",
+        "apiKey": "$ANTHROPIC_API_KEY",
+        "model": "claude-sonnet-4-20250514",
+        "language": "vi",
+        "style": "digest"
+      },
+      "outputs": [
+        { "type": "telegram", "config": { "botToken": "$TELEGRAM_BOT_TOKEN", "chatId": "$TELEGRAM_CHAT_ID" } }
+      ],
+      "options": { "concurrency": 5, "maxArticlesPerSource": 3 }
+    }
+  ]
+}
+```
+
+**Supported source types**: `preset`, `rss`, `html`, `hackernews`, `reddit`, `devto`, `json`
+
+**Supported AI providers**: `claude`, `openai`, `groq`, `gemini`, `qwen`, `deepseek`, `ollama`, `openrouter`, `together`, `custom`, `none`
+
+**Supported output types**: `telegram`, `slack`, `discord`, `email`, `webhook`, `markdown`
+
+Values starting with `$` are resolved from environment variables at runtime.
+
+### Dashboard Features
+
+- **Stream list** — shows all configured streams with status (enabled/disabled, running, last run)
+- **Manual trigger** — run any stream immediately via the UI
+- **Preview** — dry-run a stream without sending to outputs
+- **Run history** — in-memory log of recent runs with stats and generated content
+- **Live updates** — real-time status via Server-Sent Events (SSE)
 
 ## Writing Custom Plugins
 
@@ -423,9 +522,21 @@ export const handler = async () => engine.run();
 |----------|----------|-------------|
 | `TELEGRAM_BOT_TOKEN` | Per output | Telegram bot token |
 | `TELEGRAM_CHAT_ID` | Per output | Telegram chat/channel ID |
+| `AI_PROVIDER` | ❌ | AI provider to use: `claude` / `openai` / `groq` / `gemini` / `qwen` / `deepseek` / `ollama` / `openrouter` / `together` / `custom` / `none` (default: `claude`) |
+| `AI_MODEL` | ❌ | Override the default model for the selected provider |
 | `ANTHROPIC_API_KEY` | Per AI | Claude API key |
 | `OPENAI_API_KEY` | Per AI | OpenAI API key |
 | `GROQ_API_KEY` | Per AI | Groq API key |
+| `GEMINI_API_KEY` | Per AI | Google Gemini API key |
+| `QWEN_API_KEY` | Per AI | Alibaba DashScope (Qwen) API key |
+| `DEEPSEEK_API_KEY` | Per AI | DeepSeek API key |
+| `OPENROUTER_API_KEY` | Per AI | OpenRouter API key |
+| `TOGETHER_API_KEY` | Per AI | Together AI API key |
+| `OLLAMA_BASE_URL` | ❌ | Ollama base URL (default: `http://localhost:11434/v1`) |
+| `CUSTOM_AI_API_KEY` | Per AI | API key for custom OpenAI-compatible provider |
+| `CUSTOM_AI_BASE_URL` | Per AI | Base URL for custom OpenAI-compatible provider |
+| `CUSTOM_AI_MODEL` | Per AI | Model name for custom provider |
+| `CUSTOM_AI_NAME` | ❌ | Display name for custom provider |
 | `CACHE_TYPE` | ❌ | `file` / `redis` / `memory` (default: `file`) |
 | `CACHE_PATH` | ❌ | File cache path (default: `.cache/news.json`) |
 | `REDIS_URL` | ❌ | Redis connection URL |
@@ -433,6 +544,8 @@ export const handler = async () => engine.run();
 | `SUMMARY_LANGUAGE` | ❌ | `vi` / `en` (default: `vi`) |
 | `MAX_ARTICLES_PER_SOURCE` | ❌ | Default: `3` |
 | `CONCURRENCY_LIMIT` | ❌ | Parallel fetch limit (default: `5`) |
+| `DASHBOARD_PORT` | ❌ | Dashboard server port (default: `3000`) |
+| `TRIGGER_SECRET` | ❌ | Secret token for Cloudflare manual HTTP trigger |
 
 ### Engine Options
 
