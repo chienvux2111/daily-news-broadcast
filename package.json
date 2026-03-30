@@ -15,7 +15,6 @@
     "dashboard:dev": "node --watch src/dashboard/server.js"
   },
   "dependencies": {
-    "better-sqlite3": "^12.8.0",
     "express": "^5.2.1",
     "node-cron": "^3.0.3"
   },

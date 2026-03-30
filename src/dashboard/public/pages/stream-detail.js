@@ -1,5 +1,5 @@
 /**
- * Stream Detail Page — Config summary + run history
+ * Stream Detail Page — Config summary + run history (read-only)
  */
 
 import { useState, useEffect, useCallback } from 'https://esm.sh/preact@10.25.4/hooks';
@@ -7,7 +7,7 @@ import { html, api, navigate, useSSE, toast } from '../app.js';
 
 function timeAgo(dateStr) {
   if (!dateStr) return 'Never';
-  const diff = Date.now() - new Date(dateStr + 'Z').getTime();
+  const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'Just now';
   if (mins < 60) return `${mins}m ago`;
@@ -16,10 +16,7 @@ function timeAgo(dateStr) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return '-';
-  return new Date(dateStr + 'Z').toLocaleString();
-}
+function formatDate(d) { return d ? new Date(d).toLocaleString() : '-'; }
 
 function StatusBadge({ status }) {
   const map = {
@@ -29,77 +26,54 @@ function StatusBadge({ status }) {
   return html`<span class="badge ${map[status] || 'badge-dim'}">${status}</span>`;
 }
 
+function sourceLabel(src) {
+  if (src.type === 'preset') return `📦 ${src.preset}`;
+  if (src.type === 'reddit') return `🔴 r/${src.config?.subreddit || 'reddit'}`;
+  if (src.type === 'hackernews') return `🟠 HN${src.config?.query ? `: ${src.config.query}` : ''}`;
+  if (src.type === 'devto') return `🧑‍💻 Dev.to${src.config?.tag ? `: ${src.config.tag}` : ''}`;
+  if (src.config?.name) return `📡 ${src.config.name}`;
+  return `📡 ${src.type}`;
+}
+
+function outputLabel(out) {
+  const icons = { telegram: '✈️', slack: '💬', discord: '🎮', email: '📧', webhook: '🔗', markdown: '📝' };
+  return `${icons[out.type] || '📤'} ${out.type}`;
+}
+
 export default function StreamDetailPage({ id }) {
   const [stream, setStream] = useState(null);
   const [runs, setRuns] = useState(null);
-  const [runningAction, setRunningAction] = useState(null);
+  const [action, setAction] = useState(null);
 
-  const loadStream = useCallback(async () => {
-    try {
-      const data = await api(`/streams/${id}`);
-      setStream(data);
-    } catch (err) {
-      toast(err.message, 'error');
-    }
-  }, [id]);
+  const loadStream = useCallback(() => api(`/streams/${id}`).then(setStream).catch(e => toast(e.message, 'error')), [id]);
+  const loadRuns = useCallback(() => api(`/streams/${id}/runs?limit=50`).then(setRuns).catch(e => toast(e.message, 'error')), [id]);
 
-  const loadRuns = useCallback(async () => {
-    try {
-      const data = await api(`/streams/${id}/runs?limit=50`);
-      setRuns(data);
-    } catch (err) {
-      toast(err.message, 'error');
-    }
-  }, [id]);
-
-  useEffect(() => {
-    loadStream();
-    loadRuns();
-  }, [id]);
-
+  useEffect(() => { loadStream(); loadRuns(); }, [id]);
   useSSE((event) => {
-    if (event.data?.streamId === id || event.type?.startsWith('stream:')) {
-      loadStream();
-      loadRuns();
+    if (event.data?.streamId === id || event.type?.startsWith('run:')) {
+      loadStream(); loadRuns();
     }
   });
 
   const handleRun = async () => {
-    setRunningAction('run');
+    setAction('run');
     try {
       await api(`/streams/${id}/run`, { method: 'POST' });
       toast('Run completed!', 'success');
-      loadRuns();
-      loadStream();
+      loadRuns(); loadStream();
     } catch (err) { toast(err.message, 'error'); }
-    finally { setRunningAction(null); }
+    finally { setAction(null); }
   };
 
   const handlePreview = async () => {
-    setRunningAction('preview');
+    setAction('preview');
     try {
       const result = await api(`/streams/${id}/preview`, { method: 'POST' });
       toast('Preview done!', 'success');
       loadRuns();
       if (result.id) navigate(`/runs/${result.id}`);
     } catch (err) { toast(err.message, 'error'); }
-    finally { setRunningAction(null); }
-  };
-
-  const handleToggle = async () => {
-    try {
-      await api(`/streams/${id}/toggle`, { method: 'POST' });
-      loadStream();
-    } catch (err) { toast(err.message, 'error'); }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm('Delete this stream and all its run history?')) return;
-    try {
-      await api(`/streams/${id}`, { method: 'DELETE' });
-      toast('Stream deleted', 'success');
-      navigate('/');
-    } catch (err) { toast(err.message, 'error'); }
+    finally { setAction(null); }
   };
 
   if (!stream) return html`<div class="container" style="text-align:center;padding:48px"><div class="spinner"></div></div>`;
@@ -110,28 +84,23 @@ export default function StreamDetailPage({ id }) {
         <a href="#/">Streams</a> / ${stream.name}
       </div>
 
-      <!-- Header -->
       <div class="page-header">
         <div>
           <h1 class="page-title" style="display:flex;align-items:center;gap:10px">
             ${stream.name}
             <span class="badge ${stream.enabled ? 'badge-success' : 'badge-dim'}">
-              ${stream.enabled ? 'Active' : 'Paused'}
+              ${stream.enabled ? 'Active' : 'Disabled'}
             </span>
           </h1>
+          <p style="color:var(--text-dim);font-size:12px;margin-top:4px">ID: ${stream.id}</p>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn" onClick=${handleToggle}>
-            ${stream.enabled ? 'Pause' : 'Enable'}
+          <button class="btn" onClick=${handlePreview} disabled=${!!action}>
+            ${action === 'preview' ? html`<span class="spinner"></span>` : 'Preview'}
           </button>
-          <button class="btn" onClick=${handlePreview} disabled=${!!runningAction}>
-            ${runningAction === 'preview' ? html`<span class="spinner"></span>` : 'Preview'}
+          <button class="btn btn-primary" onClick=${handleRun} disabled=${!!action || !stream.enabled}>
+            ${action === 'run' ? html`<span class="spinner"></span>` : 'Run Now'}
           </button>
-          <button class="btn btn-primary" onClick=${handleRun} disabled=${!!runningAction}>
-            ${runningAction === 'run' ? html`<span class="spinner"></span>` : 'Run Now'}
-          </button>
-          <button class="btn" onClick=${() => navigate(`/streams/${id}/edit`)}>Edit</button>
-          <button class="btn btn-danger" onClick=${handleDelete}>Delete</button>
         </div>
       </div>
 
@@ -142,12 +111,11 @@ export default function StreamDetailPage({ id }) {
           <div style="font-size:20px;font-weight:600;margin-bottom:4px">🕐 ${stream.cron}</div>
           <div style="font-size:13px;color:var(--text-dim)">Timezone: ${stream.timezone}</div>
         </div>
-
         <div class="card">
           <div class="section-title">AI Persona</div>
-          ${stream.ai ? html`
+          ${stream.ai && stream.ai.provider !== 'none' ? html`
             <div style="font-size:16px;font-weight:600;margin-bottom:4px">
-              🤖 ${stream.ai.provider} ${stream.ai.model ? `(${stream.ai.model})` : ''}
+              🤖 ${stream.ai.provider}${stream.ai.model ? ` (${stream.ai.model})` : ''}
             </div>
             <div style="font-size:13px;color:var(--text-dim)">
               ${stream.ai.language || 'vi'} · ${stream.ai.style || 'digest'}
@@ -160,22 +128,13 @@ export default function StreamDetailPage({ id }) {
         <div class="card">
           <div class="section-title">Sources (${stream.sources.length})</div>
           <div class="plugin-list">
-            ${stream.sources.map((s, i) => html`
-              <span key=${i} class="plugin-tag">
-                ${s.type === 'preset' ? `📦 ${s.preset}` : `📡 ${s.type}${s.config?.name ? `: ${s.config.name}` : s.config?.subreddit ? `: r/${s.config.subreddit}` : ''}`}
-              </span>
-            `)}
+            ${stream.sources.map((s, i) => html`<span key=${i} class="plugin-tag">${sourceLabel(s)}</span>`)}
           </div>
         </div>
-
         <div class="card">
           <div class="section-title">Outputs (${stream.outputs.length})</div>
           <div class="plugin-list">
-            ${stream.outputs.map((o, i) => html`
-              <span key=${i} class="plugin-tag">
-                📤 ${o.type}${o.config?.chatId ? `: ${o.config.chatId}` : o.config?.webhookUrl ? ' (webhook)' : ''}
-              </span>
-            `)}
+            ${stream.outputs.map((o, i) => html`<span key=${i} class="plugin-tag">${outputLabel(o)}</span>`)}
           </div>
         </div>
       </div>
@@ -184,7 +143,7 @@ export default function StreamDetailPage({ id }) {
       <div class="card">
         <div class="card-header">
           <span class="card-title">Run History</span>
-          <span style="font-size:12px;color:var(--text-dim)">${runs?.total || 0} total</span>
+          <span style="font-size:12px;color:var(--text-dim)">${runs?.total || 0} total (in-memory)</span>
         </div>
 
         ${!runs ? html`<div style="text-align:center;padding:24px"><div class="spinner"></div></div>` :
@@ -201,7 +160,7 @@ export default function StreamDetailPage({ id }) {
                     <th>Trigger</th>
                     <th>Articles</th>
                     <th>Duration</th>
-                    <th>Started</th>
+                    <th>Time</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -219,8 +178,7 @@ export default function StreamDetailPage({ id }) {
                 </tbody>
               </table>
             </div>
-          `
-        }
+          `}
       </div>
     </div>
   `;

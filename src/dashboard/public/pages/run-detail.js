@@ -15,7 +15,7 @@ function StatusBadge({ status }) {
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
-  return new Date(dateStr + 'Z').toLocaleString();
+  return new Date(dateStr).toLocaleString();
 }
 
 export default function RunDetailPage({ id }) {

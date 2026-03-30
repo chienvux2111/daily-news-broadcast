@@ -1,5 +1,6 @@
 /**
  * Dashboard App — Preact SPA via CDN (no build step)
+ * Read-only monitor: view streams, trigger runs, view history.
  */
 
 import { h, render } from 'https://esm.sh/preact@10.25.4';
@@ -9,31 +10,26 @@ import htm from 'https://esm.sh/htm@3.1.1';
 export const html = htm.bind(h);
 
 // ============================================
-// Router (hash-based, simple)
+// Router (hash-based)
 // ============================================
 
 function useRouter() {
   const [route, setRoute] = useState(parseHash());
-
   useEffect(() => {
     const handler = () => setRoute(parseHash());
     window.addEventListener('hashchange', handler);
     return () => window.removeEventListener('hashchange', handler);
   }, []);
-
   return route;
 }
 
 function parseHash() {
   const hash = location.hash.slice(1) || '/';
-  const [path, query] = hash.split('?');
-  const parts = path.split('/').filter(Boolean);
-  return { path, parts, query };
+  const parts = hash.split('/').filter(Boolean);
+  return { path: hash, parts };
 }
 
-export function navigate(path) {
-  location.hash = path;
-}
+export function navigate(path) { location.hash = path; }
 
 // ============================================
 // API helpers
@@ -59,14 +55,10 @@ export async function api(path, opts = {}) {
 export function useSSE(onEvent) {
   const ref = useRef(onEvent);
   ref.current = onEvent;
-
   useEffect(() => {
     const es = new EventSource('/api/events');
     es.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        ref.current(data);
-      } catch {}
+      try { ref.current(JSON.parse(e.data)); } catch {}
     };
     return () => es.close();
   }, []);
@@ -86,7 +78,6 @@ export function toast(message, type = 'info') {
 
 function ToastContainer() {
   const [toasts, setToasts] = useState([]);
-
   useEffect(() => {
     const handler = (t) => {
       setToasts(prev => [...prev, t]);
@@ -98,9 +89,7 @@ function ToastContainer() {
 
   return html`
     <div class="toast-container">
-      ${toasts.map(t => html`
-        <div key=${t.id} class="toast toast-${t.type}">${t.message}</div>
-      `)}
+      ${toasts.map(t => html`<div key=${t.id} class="toast toast-${t.type}">${t.message}</div>`)}
     </div>
   `;
 }
@@ -110,23 +99,15 @@ function ToastContainer() {
 // ============================================
 
 const pageCache = {};
-
 async function loadPage(name) {
-  if (!pageCache[name]) {
-    pageCache[name] = import(`/pages/${name}.js`);
-  }
+  if (!pageCache[name]) pageCache[name] = import(`/pages/${name}.js`);
   return pageCache[name];
 }
 
 function LazyPage({ name, ...props }) {
   const [mod, setMod] = useState(null);
-
-  useEffect(() => {
-    setMod(null);
-    loadPage(name).then(setMod);
-  }, [name]);
-
-  if (!mod) return html`<div class="container"><div class="spinner"></div></div>`;
+  useEffect(() => { setMod(null); loadPage(name).then(setMod); }, [name]);
+  if (!mod) return html`<div class="container" style="text-align:center;padding:48px"><div class="spinner"></div></div>`;
   return h(mod.default, props);
 }
 
@@ -135,16 +116,13 @@ function LazyPage({ name, ...props }) {
 // ============================================
 
 function Header() {
-  const route = parseHash();
   return html`
     <header class="header">
       <div class="header-logo" onClick=${() => navigate('/')}>
         <span>📡</span> NewsEngine
       </div>
-      <div class="header-nav">
-        <button class="btn btn-primary" onClick=${() => navigate('/streams/new')}>
-          + New Stream
-        </button>
+      <div style="font-size:12px;color:var(--text-dim)">
+        Config-driven dashboard
       </div>
     </header>
   `;
@@ -155,29 +133,20 @@ function Header() {
 // ============================================
 
 function App() {
-  const route = useRouter();
-  const { parts } = route;
+  const { parts } = useRouter();
 
   let page;
-  if (parts.length === 0 || (parts[0] === '')) {
+  if (parts.length === 0 || parts[0] === '') {
     page = html`<${LazyPage} name="dashboard" />`;
-  } else if (parts[0] === 'streams' && parts[1] === 'new') {
-    page = html`<${LazyPage} name="stream-form" />`;
-  } else if (parts[0] === 'streams' && parts[2] === 'edit') {
-    page = html`<${LazyPage} name="stream-form" id=${parts[1]} />`;
   } else if (parts[0] === 'streams' && parts[1]) {
     page = html`<${LazyPage} name="stream-detail" id=${parts[1]} />`;
   } else if (parts[0] === 'runs' && parts[1]) {
     page = html`<${LazyPage} name="run-detail" id=${parts[1]} />`;
   } else {
-    page = html`<div class="container"><h2>404 — Not Found</h2></div>`;
+    page = html`<div class="container"><h2>404</h2></div>`;
   }
 
-  return html`
-    <${Header} />
-    ${page}
-    <${ToastContainer} />
-  `;
+  return html`<${Header} />${page}<${ToastContainer} />`;
 }
 
 render(html`<${App} />`, document.getElementById('app'));
