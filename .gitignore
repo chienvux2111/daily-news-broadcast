@@ -1,6 +1,7 @@
 node_modules/
 .cache/
 .env
+streams.config.json
 .dev.vars
 .wrangler/
 dist/
