@@ -106,6 +106,76 @@ Format: "⭐ MUST READ - [DD/MM/YYYY]"
 };
 
 /**
+ * Build a prompt for generating a single-article hook message
+ * Used by drip mode to create individual Telegram posts
+ *
+ * @param {Article} article
+ * @param {Object} options
+ * @returns {{ system: string, user: string }}
+ */
+export function buildHookPrompt(article, options = {}) {
+  // options kept for future extensibility (language, audience)
+  const meta = article.meta || {};
+  const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  // Pick a random opening style to force variety
+  const openers = [
+    'Mở đầu bằng 1 hot take ngắn gọn',
+    'Mở đầu bằng 1 câu hỏi rhetorical',
+    'Mở đầu bằng reaction cá nhân kiểu "Vừa đọc cái này..."',
+    'Mở đầu bằng comparison với cái gì đó quen thuộc',
+    'Mở đầu bằng prediction ngắn',
+    'Mở đầu bằng confession kiểu "Ngl mình skeptical lúc đầu nhưng..."',
+    'Mở đầu thẳng vào vấn đề, không dạo đầu',
+  ];
+  const opener = openers[Math.floor(Math.random() * openers.length)];
+
+  const system = `Viết 1 post Telegram ngắn cho bài tech news bên dưới. Viết như dev Việt nhắn tin cho bạn bè — Vietnglish tự nhiên, không formal, không robot.
+
+VÍ DỤ TONE ĐÚNG (học theo cách viết này, KHÔNG copy nguyên văn):
+
+Ví dụ 1: "Cloudflare vừa cho build AI agent chạy trên edge luôn. Nghe fancy nhưng thực tế thì cũng chỉ là wrapper đẹp hơn thôi, chưa thấy gì breakthrough lắm. Ai rảnh thì nghịch thử 👀
+blog.cloudflare.com/..."
+
+Ví dụ 2: "GitHub vừa drop cái secure code game cho AI agents. Ngl cái này hay thiệt, kiểu capture-the-flag nhưng cho LLM security. Dân AppSec nên thử.
+github.blog/..."
+
+Ví dụ 3: "Thêm 1 cái framework mới cho AI agents... tired. Nhưng mà cái này của Google nên có lẽ đáng xem hơn mấy cái indie. Hoặc không, ai biết.
+developers.googleblog.com/..."
+
+Ví dụ 4: "Ơ wait, Stripe mở API mới cho embedded finance à? Cái này lowkey game-changer cho ai đang build fintech product đó. Cost giảm đáng kể so với trước.
+stripe.com/..."
+
+QUY TẮC:
+- Vietnglish tự nhiên: tiếng Việt + tiếng Anh xen kẽ như dev Việt chat thường ngày
+- Có opinion thật: nói thẳng tin này hype hay legit, có value hay chỉ noise
+- Ngắn: 3-5 câu max, tối đa 400 ký tự. Đừng dài dòng
+- Link gốc ở cuối, KHÔNG ghi "Đọc thêm:" hay "Link:" — paste link thẳng
+- Emoji: tối đa 1 cái, hoặc không có cũng được
+- Dùng *bold* cho 1-2 keyword nếu cần, đừng lạm dụng
+- KHÔNG bắt đầu bằng emoji
+- KHÔNG dùng ## headers
+- ${opener}`;
+
+  const articleInfo = [
+    `Title: "${article.title}"`,
+    `Source: ${article.source}`,
+    `URL: ${article.url}`,
+    article.content ? `Content: ${article.content.substring(0, 800)}` : '',
+    article.category ? `Category: ${article.category}` : '',
+    meta.points ? `HN Points: ${meta.points}` : '',
+    meta.upvotes ? `Upvotes: ${meta.upvotes}` : '',
+    meta.stars ? `GitHub Stars: ${meta.stars}` : '',
+    meta.alsoFrom?.length ? `Also trending on: ${meta.alsoFrom.join(', ')}` : '',
+  ].filter(Boolean).join('\n');
+
+  return {
+    system,
+    user: `Today is ${today}.\n\n${articleInfo}\n\nWrite the hook post now.`,
+  };
+}
+
+/**
  * Format a single article for the prompt
  */
 function formatArticle(a, index) {

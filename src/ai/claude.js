@@ -25,7 +25,7 @@ export class ClaudeAI extends AIPlugin {
   get name() { return `Claude (${this._config.model})`; }
 
   async summarize(articles, options = {}) {
-    const { language = 'vi', style = 'digest', audience, systemPrompt, maxTokens = 4096 } = options;
+    const { language = 'vi', style = 'digest', audience, systemPrompt, _rawUserPrompt, maxTokens = 4096 } = options;
     const prompt = buildPrompt(articles, { language, style, audience });
 
     const response = await fetch(`${this._config.baseUrl}/v1/messages`, {
@@ -39,7 +39,7 @@ export class ClaudeAI extends AIPlugin {
         model: this._config.model,
         max_tokens: maxTokens,
         system: systemPrompt || prompt.system,
-        messages: [{ role: 'user', content: prompt.user }],
+        messages: [{ role: 'user', content: _rawUserPrompt || prompt.user }],
       }),
     });
 

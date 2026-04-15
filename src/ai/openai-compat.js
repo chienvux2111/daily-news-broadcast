@@ -29,7 +29,7 @@ export class OpenAICompatibleAI extends AIPlugin {
   get name() { return this._config.name || `OpenAI (${this._config.model})`; }
 
   async summarize(articles, options = {}) {
-    const { language = 'vi', style = 'digest', audience, systemPrompt, maxTokens = 4096 } = options;
+    const { language = 'vi', style = 'digest', audience, systemPrompt, _rawUserPrompt, maxTokens = 4096 } = options;
     const prompt = buildPrompt(articles, { language, style, audience });
 
     const headers = {
@@ -48,7 +48,7 @@ export class OpenAICompatibleAI extends AIPlugin {
         max_tokens: maxTokens,
         messages: [
           { role: 'system', content: systemPrompt || prompt.system },
-          { role: 'user', content: prompt.user },
+          { role: 'user', content: _rawUserPrompt || prompt.user },
         ],
         ...this._config.extraBody,
       }),

@@ -219,6 +219,128 @@ export class NewsEngine {
   }
 
   /**
+   * Drip mode: Fetch → Score → Pick top N → Send each article as individual message
+   * Each article gets its own AI-generated hook via buildHookPrompt()
+   *
+   * @param {Object} [runOptions]
+   * @param {boolean} [runOptions.force=false]    - Skip dedup
+   * @param {boolean} [runOptions.dryRun=false]   - Don't send to outputs
+   * @param {number}  [runOptions.delayMs=3000]   - Delay between messages (ms)
+   * @returns {Promise<DripResult>}
+   */
+  async runDrip(runOptions = {}) {
+    const { force = false, dryRun = false, delayMs = 3000 } = runOptions;
+    const log = this.logger;
+    const startTime = Date.now();
+
+    this._validate();
+    if (!this.ai) throw new Error('Drip mode requires an AI provider for hook generation');
+
+    // Reuse daily check
+    if (!force) {
+      const todayKey = `drip:${dateKey()}`;
+      if (await this.cache.has(todayKey)) {
+        log('[Engine] Drip already sent today. Use force=true to override.');
+        return { status: 'skipped', reason: 'already_sent' };
+      }
+    }
+
+    // Fetch + dedup + middleware (same as run())
+    log(`[Engine] Fetching from ${this.sources.length} source(s)...`);
+    let articles = await this._fetchAll();
+    log(`[Engine] Got ${articles.length} article(s)`);
+    if (articles.length === 0) return { status: 'skipped', reason: 'no_articles' };
+
+    if (!force) {
+      const before = articles.length;
+      articles = await this._dedup(articles);
+      log(`[Engine] ${articles.length} new (${before - articles.length} cached)`);
+    }
+    if (articles.length === 0) return { status: 'skipped', reason: 'all_cached' };
+
+    for (const mw of this.middlewares) {
+      articles = await mw(articles);
+    }
+
+    // Generate hook + send for each article individually
+    const { buildHookPrompt } = await import('../ai/_prompts.js');
+    const results = [];
+    let totalUsage = { input: 0, output: 0 };
+
+    log(`[Engine] Drip sending ${articles.length} article(s)...`);
+
+    for (let i = 0; i < articles.length; i++) {
+      const article = articles[i];
+      try {
+        // Generate hook for this article
+        const hookPrompt = buildHookPrompt(article, {
+          language: this.options.language,
+          audience: this.options.audience,
+        });
+        const aiResult = await this.ai.summarize([article], {
+          language: this.options.language,
+          audience: this.options.audience,
+          systemPrompt: hookPrompt.system,
+          _rawUserPrompt: hookPrompt.user,
+        });
+
+        const hookText = aiResult.text;
+        if (aiResult.usage) {
+          totalUsage.input += aiResult.usage.input || 0;
+          totalUsage.output += aiResult.usage.output || 0;
+        }
+
+        // Send to all outputs
+        if (!dryRun) {
+          for (const output of this.outputs) {
+            try {
+              const formatted = this._fitToOutput(hookText, output);
+              const sendResult = await output.send(formatted);
+              log(`[Engine] ✓ [${i + 1}/${articles.length}] ${output.name}: ${article.title.substring(0, 50)}...`);
+              results.push({ article: article.title, output: output.id, ...sendResult });
+            } catch (err) {
+              log(`[Engine] ✗ [${i + 1}/${articles.length}] ${output.name}: ${err.message}`);
+              results.push({ article: article.title, output: output.id, success: false, error: err.message });
+            }
+          }
+        } else {
+          log(`[Engine] [${i + 1}/${articles.length}] ${article.title.substring(0, 60)}`);
+          log(hookText);
+          log('---');
+          results.push({ article: article.title, hook: hookText, dryRun: true });
+        }
+
+        // Delay between messages
+        if (i < articles.length - 1 && !dryRun) {
+          await sleep(delayMs);
+        }
+      } catch (err) {
+        log(`[Engine] ✗ [${i + 1}/${articles.length}] Hook generation failed: ${err.message}`);
+        results.push({ article: article.title, success: false, error: err.message });
+      }
+    }
+
+    if (!dryRun) {
+      await this._markSent(articles);
+      await this.cache.set(`drip:${dateKey()}`, JSON.stringify({
+        sentAt: new Date().toISOString(),
+        articleCount: articles.length,
+      }), 30 * 24 * 60 * 60 * 1000);
+    }
+
+    const durationMs = Date.now() - startTime;
+    log(`[Engine] Drip done in ${durationMs}ms — ${articles.length} articles`);
+
+    return {
+      status: dryRun ? 'dry_run' : 'success',
+      mode: 'drip',
+      articles: results,
+      stats: { ...this._stats(articles.length, durationMs), mode: 'drip' },
+      aiUsage: totalUsage,
+    };
+  }
+
+  /**
    * Fetch only — returns raw articles (useful for debugging)
    */
   async fetchAll() {

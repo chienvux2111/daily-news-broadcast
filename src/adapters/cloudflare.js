@@ -3,7 +3,7 @@
  * Deploy: wrangler deploy
  */
 
-import { NewsEngine, CloudflareKVCache } from '../core/index.js';
+import { NewsEngine, CloudflareKVCache, createScoringMiddleware, createSemanticDedupMiddleware } from '../core/index.js';
 import { bigTechBlogs } from '../presets/index.js';
 import { createAI } from '../ai/create-ai.js';
 import { TelegramOutput } from '../outputs/index.js';
@@ -41,8 +41,12 @@ function createEngine(cfEnv) {
     chatId: cfEnv.TELEGRAM_CHAT_ID,
   }));
 
+  const maxArticles = parseInt(cfEnv.MAX_ARTICLES || '12');
+
   engine
     .useCache(new CloudflareKVCache(cfEnv.NEWS_CACHE))
+    .use(createScoringMiddleware({ maxArticles }))
+    .use(createSemanticDedupMiddleware())
     .configure({
       maxArticlesPerSource: parseInt(cfEnv.MAX_ARTICLES_PER_SOURCE || '3'),
       concurrency: parseInt(cfEnv.CONCURRENCY_LIMIT || '5'),
@@ -54,7 +58,12 @@ function createEngine(cfEnv) {
 
 export default {
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(createEngine(env).run());
+    const mode = (env.BROADCAST_MODE || 'drip').toLowerCase();
+    if (mode === 'drip') {
+      ctx.waitUntil(createEngine(env).runDrip({ delayMs: parseInt(env.DRIP_DELAY_MS || '5000') }));
+    } else {
+      ctx.waitUntil(createEngine(env).run());
+    }
   },
 
   async fetch(request, env, ctx) {
@@ -69,8 +78,13 @@ export default {
         return new Response('Unauthorized', { status: 401 });
       }
       const force = url.searchParams.get('force') === 'true';
-      ctx.waitUntil(createEngine(env).run({ force }));
-      return json({ message: 'Triggered', force });
+      const mode = url.searchParams.get('mode') || env.BROADCAST_MODE || 'drip';
+      if (mode === 'drip') {
+        ctx.waitUntil(createEngine(env).runDrip({ force, delayMs: parseInt(env.DRIP_DELAY_MS || '5000') }));
+      } else {
+        ctx.waitUntil(createEngine(env).run({ force }));
+      }
+      return json({ message: 'Triggered', force, mode });
     }
 
     if (url.pathname === '/preview') {

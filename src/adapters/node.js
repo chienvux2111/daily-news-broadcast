@@ -4,7 +4,7 @@
  * Usage: node src/adapters/node.js <run|cron|preview|help> [--force]
  */
 
-import { NewsEngine, FileCache, RedisCache, MemoryCache } from '../core/index.js';
+import { NewsEngine, FileCache, RedisCache, MemoryCache, createScoringMiddleware, createSemanticDedupMiddleware } from '../core/index.js';
 import { bigTechBlogs } from '../presets/index.js';
 import { createAI } from '../ai/create-ai.js';
 import { TelegramOutput } from '../outputs/index.js';
@@ -70,12 +70,16 @@ function createEngine() {
 
   if (ai) engine.useAI(ai);
 
+  const maxArticles = parseInt(env('MAX_ARTICLES', '12'));
+
   return engine
     .addOutput(new TelegramOutput({
       botToken: process.env.TELEGRAM_BOT_TOKEN,
       chatId: process.env.TELEGRAM_CHAT_ID,
     }))
     .useCache(createCache())
+    .use(createScoringMiddleware({ maxArticles }))
+    .use(createSemanticDedupMiddleware())
     .configure({
       maxArticlesPerSource: parseInt(env('MAX_ARTICLES_PER_SOURCE', '3')),
       concurrency: parseInt(env('CONCURRENCY_LIMIT', '5')),
@@ -129,6 +133,15 @@ async function runPreview() {
   if (engine.cache.disconnect) await engine.cache.disconnect();
 }
 
+async function runDrip(force = false) {
+  const engine = createEngine();
+  const delayMs = parseInt(env('DRIP_DELAY_MS', '5000'));
+  console.log(`💧 Drip mode — sending articles one by one (${delayMs}ms delay)...\n`);
+  const result = await engine.runDrip({ force, delayMs });
+  console.log('\n📊 Result:', JSON.stringify(result.stats, null, 2));
+  if (engine.cache.disconnect) await engine.cache.disconnect();
+}
+
 // === CLI ===
 
 const cmd = process.argv[2] || 'run';
@@ -136,6 +149,7 @@ const force = process.argv.includes('--force');
 
 switch (cmd) {
   case 'run': await runOnce(force); break;
+  case 'drip': await runDrip(force); break;
   case 'cron': case 'daemon': await runCron(); break;
   case 'preview': await runPreview(); break;
   default:
@@ -144,7 +158,8 @@ switch (cmd) {
 
   node src/adapters/node.js <command> [--force]
 
-  run       One-time execution (default)
+  run       One-time digest (all articles in 1 message)
+  drip      Drip mode (each article as individual message)
   cron      Daemon with scheduled runs
   preview   Dry run — no Telegram send
   help      This message
