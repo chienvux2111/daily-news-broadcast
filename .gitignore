@@ -7,3 +7,4 @@ streams.config.json
 dist/
 output/
 *.log
+.claude/session-state/

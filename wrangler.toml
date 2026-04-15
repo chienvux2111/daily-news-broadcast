@@ -1,15 +1,18 @@
 name = "news-engine"
 main = "src/adapters/cloudflare.js"
-compatibility_date = "2024-01-01"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
 
 [triggers]
 crons = ["0 7 * * *"]
 
 [[kv_namespaces]]
 binding = "NEWS_CACHE"
-id = "YOUR_KV_NAMESPACE_ID"
+id = "8d9fb458825a46b68c7efcca93133b51"
 
 [vars]
+AI_PROVIDER = "openai"
+AI_MODEL = "gpt-4o-mini"
 MAX_ARTICLES_PER_SOURCE = "3"
 CONCURRENCY_LIMIT = "5"
 SUMMARY_LANGUAGE = "vi"
