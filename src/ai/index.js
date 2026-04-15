@@ -15,3 +15,4 @@ export {
   deepseek,
 } from './openai-compat.js';
 export { buildPrompt } from './_prompts.js';
+export { createAI } from './create-ai.js';

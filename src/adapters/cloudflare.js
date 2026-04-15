@@ -5,73 +5,48 @@
 
 import { NewsEngine, CloudflareKVCache } from '../core/index.js';
 import { bigTechBlogs } from '../presets/index.js';
-import { ClaudeAI, openai, groq, gemini, qwen, deepseek, openRouter, togetherAI, OpenAICompatibleAI } from '../ai/index.js';
+import { createAI } from '../ai/create-ai.js';
 import { TelegramOutput } from '../outputs/index.js';
 
-function createAI(env) {
-  const provider = (env.AI_PROVIDER || 'claude').toLowerCase();
-  const model = env.AI_MODEL || undefined;
+/** Map CF Worker env bindings to createAI config */
+const PROVIDER_KEY_MAP = {
+  claude: 'ANTHROPIC_API_KEY', anthropic: 'ANTHROPIC_API_KEY',
+  openai: 'OPENAI_API_KEY',
+  groq: 'GROQ_API_KEY',
+  gemini: 'GEMINI_API_KEY', google: 'GEMINI_API_KEY',
+  qwen: 'QWEN_API_KEY', alibaba: 'QWEN_API_KEY', dashscope: 'QWEN_API_KEY',
+  deepseek: 'DEEPSEEK_API_KEY',
+  openrouter: 'OPENROUTER_API_KEY',
+  together: 'TOGETHER_API_KEY',
+  custom: 'CUSTOM_AI_API_KEY',
+};
 
-  switch (provider) {
-    case 'none':
-    case 'off':
-    case 'skip':
-      return null;
-    case 'claude':
-    case 'anthropic':
-      return new ClaudeAI({ apiKey: env.ANTHROPIC_API_KEY, ...(model && { model }) });
-    case 'openai':
-      return openai(env.OPENAI_API_KEY, model || 'gpt-4o-mini');
-    case 'groq':
-      return groq(env.GROQ_API_KEY, model || 'llama-3.3-70b-versatile');
-    case 'gemini':
-    case 'google':
-      return gemini(env.GEMINI_API_KEY, model || 'gemini-2.0-flash');
-    case 'qwen':
-    case 'alibaba':
-    case 'dashscope':
-      return qwen(env.QWEN_API_KEY, model || 'qwen-plus');
-    case 'deepseek':
-      return deepseek(env.DEEPSEEK_API_KEY, model || 'deepseek-chat');
-    case 'openrouter':
-      return openRouter(env.OPENROUTER_API_KEY, model || 'anthropic/claude-3.5-sonnet');
-    case 'together':
-      return togetherAI(env.TOGETHER_API_KEY, model || 'meta-llama/Llama-3.3-70B-Instruct-Turbo');
-    case 'custom':
-      return new OpenAICompatibleAI({
-        apiKey: env.CUSTOM_AI_API_KEY,
-        baseUrl: env.CUSTOM_AI_BASE_URL,
-        model: model || env.CUSTOM_AI_MODEL || 'default',
-        name: env.CUSTOM_AI_NAME || 'Custom AI',
-      });
-    default:
-      throw new Error(`Unknown AI_PROVIDER: "${provider}"`);
-  }
-}
+function createEngine(cfEnv) {
+  const provider = (cfEnv.AI_PROVIDER || 'claude').toLowerCase();
+  const keyEnv = PROVIDER_KEY_MAP[provider];
 
-function createEngine(env) {
+  const ai = createAI({
+    provider,
+    model: cfEnv.AI_MODEL || undefined,
+    apiKey: keyEnv ? cfEnv[keyEnv] : undefined,
+    baseUrl: provider === 'custom' ? cfEnv.CUSTOM_AI_BASE_URL : undefined,
+    name: provider === 'custom' ? (cfEnv.CUSTOM_AI_NAME || undefined) : undefined,
+  });
   const engine = new NewsEngine();
-
-  // Sources
   for (const source of bigTechBlogs()) engine.addSource(source);
-
-  // AI
-  const ai = createAI(env);
   if (ai) engine.useAI(ai);
 
-  // Output
   engine.addOutput(new TelegramOutput({
-    botToken: env.TELEGRAM_BOT_TOKEN,
-    chatId: env.TELEGRAM_CHAT_ID,
+    botToken: cfEnv.TELEGRAM_BOT_TOKEN,
+    chatId: cfEnv.TELEGRAM_CHAT_ID,
   }));
 
-  // Cache & config
   engine
-    .useCache(new CloudflareKVCache(env.NEWS_CACHE))
+    .useCache(new CloudflareKVCache(cfEnv.NEWS_CACHE))
     .configure({
-      maxArticlesPerSource: parseInt(env.MAX_ARTICLES_PER_SOURCE || '3'),
-      concurrency: parseInt(env.CONCURRENCY_LIMIT || '5'),
-      language: env.SUMMARY_LANGUAGE || 'vi',
+      maxArticlesPerSource: parseInt(cfEnv.MAX_ARTICLES_PER_SOURCE || '3'),
+      concurrency: parseInt(cfEnv.CONCURRENCY_LIMIT || '5'),
+      language: cfEnv.SUMMARY_LANGUAGE || 'vi',
     });
 
   return engine;
@@ -99,6 +74,9 @@ export default {
     }
 
     if (url.pathname === '/preview') {
+      if (env.TRIGGER_SECRET && request.headers.get('Authorization') !== `Bearer ${env.TRIGGER_SECRET}`) {
+        return new Response('Unauthorized', { status: 401 });
+      }
       const result = await createEngine(env).generate();
       return json(result);
     }

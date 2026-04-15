@@ -25,10 +25,17 @@ export class RedditSource extends SourcePlugin {
     const { limit = 10, since } = options;
     const { subreddit, sort, minUpvotes } = this._config;
     const url = `https://www.reddit.com/r/${subreddit}/${sort}.json?limit=${limit * 3}&raw_json=1`;
+    const headers = { 'User-Agent': 'NewsEngine/2.0 (tech news aggregator)' };
 
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'NewsEngine/2.0' },
-    });
+    let response = await fetch(url, { headers });
+
+    // Handle rate limiting — wait and retry once
+    if (response.status === 429) {
+      const retryAfter = Math.min(parseInt(response.headers.get('retry-after') || '5', 10), 30);
+      await new Promise(r => setTimeout(r, retryAfter * 1000));
+      response = await fetch(url, { headers });
+    }
+
     if (!response.ok) return [];
 
     const data = await response.json();

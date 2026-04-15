@@ -29,8 +29,8 @@ export class OpenAICompatibleAI extends AIPlugin {
   get name() { return this._config.name || `OpenAI (${this._config.model})`; }
 
   async summarize(articles, options = {}) {
-    const { language = 'vi', style = 'digest', systemPrompt, maxTokens = 4096 } = options;
-    const prompt = buildPrompt(articles, { language, style });
+    const { language = 'vi', style = 'digest', audience, systemPrompt, maxTokens = 4096 } = options;
+    const prompt = buildPrompt(articles, { language, style, audience });
 
     const headers = {
       'Content-Type': 'application/json',

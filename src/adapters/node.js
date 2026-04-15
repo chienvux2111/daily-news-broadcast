@@ -6,7 +6,7 @@
 
 import { NewsEngine, FileCache, RedisCache, MemoryCache } from '../core/index.js';
 import { bigTechBlogs } from '../presets/index.js';
-import { ClaudeAI, openai, groq, gemini, qwen, deepseek, ollama, openRouter, togetherAI, OpenAICompatibleAI } from '../ai/index.js';
+import { createAI } from '../ai/create-ai.js';
 import { TelegramOutput } from '../outputs/index.js';
 
 // Load .env
@@ -22,62 +22,32 @@ function requiredEnv(...keys) {
   }
 }
 
-function createAI() {
+/** Map provider name to the correct env var for API key */
+const PROVIDER_KEY_MAP = {
+  claude: 'ANTHROPIC_API_KEY', anthropic: 'ANTHROPIC_API_KEY',
+  openai: 'OPENAI_API_KEY',
+  groq: 'GROQ_API_KEY',
+  gemini: 'GEMINI_API_KEY', google: 'GEMINI_API_KEY',
+  qwen: 'QWEN_API_KEY', alibaba: 'QWEN_API_KEY', dashscope: 'QWEN_API_KEY',
+  deepseek: 'DEEPSEEK_API_KEY',
+  openrouter: 'OPENROUTER_API_KEY',
+  together: 'TOGETHER_API_KEY',
+  custom: 'CUSTOM_AI_API_KEY',
+};
+
+function makeAI() {
   const provider = env('AI_PROVIDER', 'claude').toLowerCase();
-  const model = env('AI_MODEL', undefined);
+  const keyEnv = PROVIDER_KEY_MAP[provider];
 
-  switch (provider) {
-    case 'none':
-    case 'off':
-    case 'skip':
-      return null;
-
-    case 'claude':
-    case 'anthropic':
-      return new ClaudeAI({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-        ...(model && { model }),
-      });
-
-    case 'openai':
-      return openai(process.env.OPENAI_API_KEY, model || 'gpt-4o-mini');
-
-    case 'groq':
-      return groq(process.env.GROQ_API_KEY, model || 'llama-3.3-70b-versatile');
-
-    case 'gemini':
-    case 'google':
-      return gemini(process.env.GEMINI_API_KEY, model || 'gemini-2.0-flash');
-
-    case 'qwen':
-    case 'alibaba':
-    case 'dashscope':
-      return qwen(process.env.QWEN_API_KEY, model || 'qwen-plus');
-
-    case 'deepseek':
-      return deepseek(process.env.DEEPSEEK_API_KEY, model || 'deepseek-chat');
-
-    case 'ollama':
-      return ollama(model || 'llama3.2', env('OLLAMA_BASE_URL', 'http://localhost:11434/v1'));
-
-    case 'openrouter':
-      return openRouter(process.env.OPENROUTER_API_KEY, model || 'anthropic/claude-3.5-sonnet');
-
-    case 'together':
-      return togetherAI(process.env.TOGETHER_API_KEY, model || 'meta-llama/Llama-3.3-70B-Instruct-Turbo');
-
-    case 'custom':
-      return new OpenAICompatibleAI({
-        apiKey: process.env.CUSTOM_AI_API_KEY,
-        baseUrl: process.env.CUSTOM_AI_BASE_URL,
-        model: model || process.env.CUSTOM_AI_MODEL || 'default',
-        name: env('CUSTOM_AI_NAME', 'Custom AI'),
-      });
-
-    default:
-      console.error(`❌ Unknown AI_PROVIDER: "${provider}"\n   Supported: claude, openai, groq, gemini, qwen, deepseek, ollama, openrouter, together, custom`);
-      process.exit(1);
-  }
+  return createAI({
+    provider,
+    model: env('AI_MODEL', undefined),
+    apiKey: keyEnv ? process.env[keyEnv] : undefined,
+    baseUrl: provider === 'ollama'
+      ? env('OLLAMA_BASE_URL', undefined)
+      : provider === 'custom' ? process.env.CUSTOM_AI_BASE_URL : undefined,
+    name: provider === 'custom' ? env('CUSTOM_AI_NAME', undefined) : undefined,
+  });
 }
 
 function createCache() {
@@ -92,7 +62,7 @@ function createCache() {
 function createEngine() {
   requiredEnv('TELEGRAM_BOT_TOKEN', 'TELEGRAM_CHAT_ID');
 
-  const ai = createAI();
+  const ai = makeAI();
   console.log(`🤖 AI Provider: ${ai ? ai.name : 'None (raw mode)'}`);
 
   const engine = new NewsEngine();

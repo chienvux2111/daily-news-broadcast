@@ -7,6 +7,7 @@ import { createRSSSources } from '../sources/rss.js';
 import { HackerNewsSource } from '../sources/hackernews.js';
 import { RedditSource } from '../sources/reddit.js';
 import { DevToSource } from '../sources/devto.js';
+import { GitHubTrendingSource } from '../sources/github-trending.js';
 
 // ============================================
 // Big Tech Engineering Blogs (15 sources)
@@ -42,6 +43,7 @@ export function communitySources() {
     new RedditSource({ subreddit: 'programming', minUpvotes: 200 }),
     new RedditSource({ subreddit: 'ExperiencedDevs', minUpvotes: 100 }),
     new DevToSource({ minReactions: 50 }),
+    new GitHubTrendingSource({ minStars: 100 }),
   ];
 }
 

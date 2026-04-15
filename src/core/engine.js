@@ -35,8 +35,11 @@ export class NewsEngine {
     this.options = {
       concurrency: 5,
       maxArticlesPerSource: 5,
+      maxRetries: 2,
       language: 'vi',
+      secondaryLanguage: null, // set to 'en' for bilingual digest
       style: 'digest',
+      audience: 'senior developers',
       since: new Date(Date.now() - 24 * 60 * 60 * 1000), // last 24h
     };
   }
@@ -150,17 +153,31 @@ export class NewsEngine {
 
     // === Step 4: AI SUMMARIZE ===
     let content;
+    let secondaryContent = null;
     let aiUsage = null;
     if (this.ai) {
-      log(`[Engine] Summarizing with ${this.ai.name}...`);
-      const result = await this.ai.summarize(articles, {
+      const aiOpts = {
         language: this.options.language,
         style: this.options.style,
-      });
+        audience: this.options.audience,
+      };
+      log(`[Engine] Summarizing with ${this.ai.name}...`);
+      const result = await this.ai.summarize(articles, aiOpts);
       content = result.text;
       aiUsage = result.usage || null;
+
+      // Secondary language digest (bilingual support)
+      const secLang = this.options.secondaryLanguage;
+      if (secLang && secLang !== this.options.language) {
+        log(`[Engine] Generating secondary digest (${secLang})...`);
+        const secResult = await this.ai.summarize(articles, { ...aiOpts, language: secLang });
+        secondaryContent = secResult.text;
+        if (secResult.usage && aiUsage) {
+          aiUsage.input = (aiUsage.input || 0) + (secResult.usage.input || 0);
+          aiUsage.output = (aiUsage.output || 0) + (secResult.usage.output || 0);
+        }
+      }
     } else {
-      // No AI: raw article list
       content = this._fallbackFormat(articles);
     }
 
@@ -194,6 +211,7 @@ export class NewsEngine {
     return {
       status: dryRun ? 'dry_run' : 'success',
       content,
+      ...(secondaryContent && { secondaryContent }),
       stats: this._stats(articles.length, durationMs),
       aiUsage,
       outputs: outputResults,
@@ -231,21 +249,13 @@ export class NewsEngine {
   }
 
   async _fetchAll() {
-    const { concurrency, maxArticlesPerSource, since } = this.options;
+    const { concurrency, maxArticlesPerSource, since, maxRetries } = this.options;
     const allArticles = [];
 
-    // Batch fetch with concurrency control
     for (let i = 0; i < this.sources.length; i += concurrency) {
       const batch = this.sources.slice(i, i + concurrency);
       const results = await Promise.allSettled(
-        batch.map(source =>
-          source.fetch({ limit: maxArticlesPerSource, since })
-            .then(articles => articles.map(a => ({
-              ...a,
-              id: a.id || a.url || `${a.source}:${a.title}`,
-              source: a.source || source.name,
-            })))
-        )
+        batch.map(source => this._fetchWithRetry(source, { limit: maxArticlesPerSource, since }, maxRetries))
       );
 
       for (const result of results) {
@@ -254,13 +264,34 @@ export class NewsEngine {
         }
       }
 
-      // Small delay between batches
       if (i + concurrency < this.sources.length) {
         await sleep(500);
       }
     }
 
     return allArticles;
+  }
+
+  async _fetchWithRetry(source, options, maxRetries = 2) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const articles = await source.fetch(options);
+        return articles.map(a => ({
+          ...a,
+          id: a.id || a.url || `${a.source}:${a.title}`,
+          source: a.source || source.name,
+        }));
+      } catch (err) {
+        if (attempt === maxRetries) {
+          this.logger(`[Engine] ✗ ${source.name} failed after ${attempt + 1} attempts: ${err.message}`);
+          return [];
+        }
+        const delay = 1000 * (attempt + 1);
+        this.logger(`[Engine] ⟳ ${source.name} retry ${attempt + 1}/${maxRetries} in ${delay}ms`);
+        await sleep(delay);
+      }
+    }
+    return [];
   }
 
   async _dedup(articles) {

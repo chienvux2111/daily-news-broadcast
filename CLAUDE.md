@@ -114,10 +114,11 @@ delete(key) → Promise<void>
 
 ### Adding a new AI provider
 
-1. If OpenAI-compatible API → just use factory pattern in `openai-compat.js`, add a new helper function
+1. If OpenAI-compatible API → add a new factory helper in `openai-compat.js` + register in `create-ai.js`
 2. If custom API → create `src/ai/my-ai.js`, extend `AIPlugin`, implement `summarize()`
-3. Use `buildPrompt()` from `_prompts.js` for consistent prompt formatting
+3. Use `buildPrompt()` from `_prompts.js` for consistent prompt formatting (supports `audience` param)
 4. Export from `src/ai/index.js`
+5. Add provider to `createAI()` switch in `src/ai/create-ai.js` (shared factory used by all adapters)
 
 ### Adding a new output channel
 
@@ -130,8 +131,21 @@ delete(key) → Promise<void>
 ### Adding a new prompt style
 
 1. Edit `src/ai/_prompts.js`
-2. Add entry to `STYLES` object: `myStyle: { vi: '...', en: '...' }`
+2. Add entry to `STYLES` object: `myStyle: { vi: (audience) => '...', en: (audience) => '...' }`
 3. Use via `engine.configure({ style: 'myStyle' })`
+4. Available built-in styles: `digest`, `bullet`, `thread`, `newsletter`, `weekly`, `mustread`
+
+### Using content intelligence middlewares
+
+```js
+import { createScoringMiddleware, createSemanticDedupMiddleware } from './src/core/index.js';
+
+engine
+  .use(createScoringMiddleware({ maxArticles: 20 }))   // Score & rank
+  .use(createSemanticDedupMiddleware({ threshold: 0.65 })); // Remove cross-source duplicates
+```
+
+Category grouping is automatic in `buildPrompt()` when articles have mixed categories.
 
 ### Adding a new preset
 
@@ -144,10 +158,11 @@ delete(key) → Promise<void>
 The engine pipeline in `engine.js` method `run()` is:
 ```
 1. Check cache (already sent today?)
-2. _fetchAll() — parallel fetch from all sources
+2. _fetchAll() — parallel fetch from all sources (with retry)
 3. _dedup() — filter via cache
-4. middlewares — user-injected transforms
-5. ai.summarize() — or _fallbackFormat() if no AI
+4. middlewares — user-injected transforms (scoring → semantic dedup → custom)
+5. ai.summarize() — with audience context, grouped articles (or _fallbackFormat() if no AI)
+5b. secondary language digest (if secondaryLanguage configured)
 6. output.send() — parallel to all outputs
 7. _markSent() — cache articles
 ```
@@ -171,16 +186,21 @@ npx wrangler dev
 | File | Exports | Notes |
 |------|---------|-------|
 | `core/contracts.js` | `SourcePlugin`, `AIPlugin`, `OutputPlugin`, `CachePlugin` | Abstract base classes |
-| `core/engine.js` | `NewsEngine` | Main orchestrator, ~250 lines |
+| `core/engine.js` | `NewsEngine` | Main orchestrator with retry, bilingual support |
 | `core/caches.js` | `MemoryCache`, `FileCache`, `CloudflareKVCache`, `RedisCache` | All extend CachePlugin |
+| `core/scoring.js` | `createScoringMiddleware()` | Engagement + recency + credibility scoring |
+| `core/semantic-dedup.js` | `createSemanticDedupMiddleware()` | Bigram title similarity dedup |
+| `core/grouping.js` | `groupByCategory()` | Groups articles by category for structured prompts |
 | `sources/rss.js` | `RSSSource`, `createRSSSources()`, `cleanHTML()` | Zero-dep XML parsing |
 | `sources/html-scraper.js` | `HTMLScraperSource` | Regex-based HTML extraction |
 | `sources/hackernews.js` | `HackerNewsSource` | Algolia API, configurable minPoints |
 | `sources/reddit.js` | `RedditSource` | Public JSON API, configurable subreddit + minUpvotes |
 | `sources/devto.js` | `DevToSource`, `JSONAPISource` | Dev.to API + generic JSON adapter |
+| `sources/github-trending.js` | `GitHubTrendingSource` | GitHub Search API, recently active popular repos |
 | `ai/claude.js` | `ClaudeAI` | Anthropic native `/v1/messages` endpoint |
 | `ai/openai-compat.js` | `OpenAICompatibleAI`, `openai()`, `groq()`, `gemini()`, `ollama()`, `openRouter()`, `togetherAI()` | One class, many providers |
-| `ai/_prompts.js` | `buildPrompt()` | Returns `{system, user}` for language × style matrix |
+| `ai/create-ai.js` | `createAI()` | Shared factory for all adapters |
+| `ai/_prompts.js` | `buildPrompt()` | Editorial prompts with audience, grouping, 6 styles |
 | `outputs/telegram.js` | `TelegramOutput` | Auto-split, markdown fallback |
 | `outputs/channels.js` | `SlackOutput`, `DiscordOutput`, `EmailOutput`, `WebhookOutput`, `MarkdownFileOutput` | All extend OutputPlugin |
 | `presets/index.js` | `bigTechBlogs()`, `communitySources()`, `aiMLBlogs()`, `devopsSources()`, `mobileSources()` | Return SourcePlugin[] |
