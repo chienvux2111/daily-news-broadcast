@@ -163,9 +163,10 @@ export function buildPrompt(articles, options = {}) {
   const systemPrompt = typeof styleFn === 'function' ? styleFn(audience) : styleFn;
 
   const articleList = formatArticleList(articles);
+  const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   return {
     system: systemPrompt,
-    user: `Here are today's articles:\n\n${articleList}\n\nCreate the digest now.`,
+    user: `Today's date is ${today}.\n\nHere are today's articles:\n\n${articleList}\n\nCreate the digest now.`,
   };
 }
