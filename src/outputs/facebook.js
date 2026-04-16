@@ -28,15 +28,15 @@ export class FacebookOutput extends OutputPlugin {
     const url = extractUrl(content);
     const message = url ? stripUrl(content, url) : content;
 
-    const params = new URLSearchParams({
-      message,
-      access_token: this._pageToken,
-    });
+    const params = new URLSearchParams({ message });
     if (url) params.set('link', url);
 
     const res = await fetch(`${GRAPH_API}/${this._pageId}/feed`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Authorization: `Bearer ${this._pageToken}`,
+      },
       body: params.toString(),
     });
 
@@ -58,7 +58,7 @@ export class FacebookOutput extends OutputPlugin {
 /** Extract first https URL from content */
 function extractUrl(content) {
   const match = content.match(/https?:\/\/[^\s)>\]]+/);
-  return match ? match[0] : null;
+  return match ? match[0].replace(/[.,;:!?'"]+$/, '') : null;
 }
 
 /** Remove URL from content and clean whitespace */

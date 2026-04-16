@@ -99,15 +99,24 @@ async function refreshTokens(env) {
   if (!env.TOKEN_ENCRYPTION_KEY || !env.NEWS_CACHE) return;
   const kvStore = new KVTokenStore(env.NEWS_CACHE, env.TOKEN_ENCRYPTION_KEY);
 
-  // X OAuth 2.0 — refresh if token exists
+  // X OAuth 2.0 — only refresh if current access token is missing/expired
+  // Uses a lock key to prevent concurrent refresh (cron overlap safety)
   if (env.X_CLIENT_ID) {
     try {
-      const refreshToken = await kvStore.getToken('x-tech-vn:refresh');
-      if (refreshToken) {
-        await XOutput.refreshToken(kvStore, 'x-tech-vn', refreshToken, env.X_CLIENT_ID);
+      const currentToken = await kvStore.getToken('x-tech-vn');
+      if (!currentToken) {
+        // Token missing or expired — check for lock to prevent concurrent refresh
+        const lock = await env.NEWS_CACHE.get('refresh-lock:x-tech-vn');
+        if (!lock) {
+          await env.NEWS_CACHE.put('refresh-lock:x-tech-vn', '1', { expirationTtl: 120 });
+          const refreshToken = await kvStore.getToken('x-tech-vn:refresh');
+          if (refreshToken) {
+            await XOutput.refreshToken(kvStore, 'x-tech-vn', refreshToken, env.X_CLIENT_ID);
+          }
+        }
       }
     } catch (err) {
-      console.log(`[Refresh] X token refresh failed: ${err.message}`);
+      console.error(`[Refresh] X token refresh failed: ${err.message}`);
     }
   }
 

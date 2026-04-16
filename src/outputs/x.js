@@ -90,14 +90,16 @@ export class XOutput extends OutputPlugin {
 
       const data = await res.json();
 
-      if (res.status === 429) {
-        throw new Error('X rate limit exceeded');
-      }
       if (res.status === 403 && data.detail?.includes('duplicate')) {
         console.log(`[X] Duplicate tweet skipped: ${tweets[i].substring(0, 40)}...`);
         return { success: true, messageId: firstId, meta: { duplicate: true } };
       }
       if (!res.ok) {
+        // Partial thread posted — return failure with context so engine doesn't retry
+        if (firstId) {
+          console.error(`[X] Thread failed at tweet ${i + 1}/${tweets.length}: ${res.status}`);
+          return { success: false, messageId: firstId, error: `Failed at tweet ${i + 1}`, meta: { partialThread: true, failedAt: i } };
+        }
         throw new Error(`X API error ${res.status}: ${JSON.stringify(data)}`);
       }
 
@@ -121,17 +123,25 @@ export class XOutput extends OutputPlugin {
  * Detects thread format (1/n, 2/n) or treats as single tweet
  */
 function splitIntoTweets(content) {
-  // Try to split by thread numbering pattern: "1/n", "2/n" etc
   const segments = content.split(/\n\n+/).filter(s => s.trim());
-  const hasThreadFormat = segments.length > 1 && /^\d+\/\d+/.test(segments[0].trim());
+  // Check if ANY segment starts with N/N pattern (not just first — AI may add preamble)
+  const hasThreadFormat = segments.length > 1 && segments.some(s => /^\d+\/\d+/.test(s.trim()));
 
-  const tweets = hasThreadFormat ? segments : [content];
+  if (hasThreadFormat) {
+    // Keep only numbered segments
+    const numbered = segments.filter(s => /^\d+\/\d+/.test(s.trim()));
+    return numbered
+      .slice(0, MAX_TWEETS_PER_THREAD)
+      .map(t => t.trim())
+      .map(t => t.length > MAX_TWEET ? t.substring(0, MAX_TWEET - 1) + '…' : t);
+  }
 
-  return tweets
-    .slice(0, MAX_TWEETS_PER_THREAD)
-    .map(t => t.trim())
-    .map(t => t.length > MAX_TWEET ? t.substring(0, MAX_TWEET - 1) + '…' : t)
-    .filter(t => t.length > 0);
+  // Single tweet fallback
+  if (content.length > MAX_TWEET) {
+    console.warn(`[X] Content ${content.length} chars truncated to ${MAX_TWEET} (no thread format detected)`);
+  }
+  const truncated = content.length > MAX_TWEET ? content.substring(0, MAX_TWEET - 1) + '…' : content;
+  return [truncated.trim()].filter(t => t.length > 0);
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }

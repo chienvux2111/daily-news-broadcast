@@ -42,17 +42,16 @@ export class ThreadsOutput extends OutputPlugin {
     const token = await this._getToken();
     const text = content.length > 500 ? content.substring(0, 497) + '...' : content;
 
-    // Step 1: Create container
-    const createParams = new URLSearchParams({
-      media_type: 'TEXT',
-      text,
-      access_token: token,
-    });
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Bearer ${token}`,
+    };
 
+    // Step 1: Create container
     const createRes = await fetch(`${THREADS_API}/${this._userId}/threads`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: createParams.toString(),
+      headers,
+      body: new URLSearchParams({ media_type: 'TEXT', text }).toString(),
     });
 
     const createData = await createRes.json();
@@ -62,19 +61,15 @@ export class ThreadsOutput extends OutputPlugin {
     }
 
     // Step 2: Publish
-    const publishParams = new URLSearchParams({
-      creation_id: createData.id,
-      access_token: token,
-    });
-
     const pubRes = await fetch(`${THREADS_API}/${this._userId}/threads_publish`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: publishParams.toString(),
+      headers,
+      body: new URLSearchParams({ creation_id: createData.id }).toString(),
     });
 
     const pubData = await pubRes.json();
     if (!pubRes.ok) {
+      console.error(`[Threads] Container ${createData.id} created but publish failed — will auto-expire in 24h`);
       throw new Error(`Threads publish error ${pubRes.status}: ${pubData.error?.message || JSON.stringify(pubData)}`);
     }
 
