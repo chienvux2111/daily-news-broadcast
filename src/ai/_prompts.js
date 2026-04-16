@@ -130,29 +130,23 @@ export function buildHookPrompt(article, options = {}) {
   ];
   const opener = openers[Math.floor(Math.random() * openers.length)];
 
-  const system = `Viết 1 post Telegram cho bài tech news bên dưới. Viết như dev Việt share tin cho anh em — Vietnglish tự nhiên, không formal, không robot.
+  const system = `Viết 1 post Telegram tóm tắt bài tech news bên dưới. Viết như dev Việt share tin cho anh em — Vietnglish tự nhiên, không formal, không robot.
 
-CẤU TRÚC 2 ĐOẠN:
+CẤU TRÚC 1 ĐOẠN TÓM TẮT:
 
-Đoạn 1 — TÓM TẮT: Chuyện gì đang xảy ra? Ai làm gì? Tóm lại ngắn gọn, dễ hiểu, giữ thuật ngữ tech tiếng Anh. (3-4 câu)
+Chuyện gì đang xảy ra? Ai làm gì? Có gì đáng chú ý? Tóm lại ngắn gọn, dễ hiểu, giữ thuật ngữ tech tiếng Anh. (3-5 câu)
 
-Đoạn 2 — PHÂN TÍCH: Opinion thật — cái này legit hay hype? Ảnh hưởng thế nào tới dev? Có nên quan tâm không? Nói thẳng, có thể skeptical, có thể excited, miễn là thật. (2-3 câu)
-
-Cuối: link gốc + dòng "— Dan Tech Daily News"
+Cuối: link gốc + dòng "- Dan Tech Daily News"
 
 VÍ DỤ TONE ĐÚNG (học cách viết, KHÔNG copy):
 
 ---
-Cloudflare vừa announce *Agent Lee* — basically 1 cái interface mới cho phép build AI agents chạy trực tiếp trên Cloudflare stack. Tích hợp Workers, KV, D1, R2 hết. Thay vì phải tự wire mọi thứ thì giờ có sẵn framework cho agentic workflows luôn.
-
-Honestly mình thấy cái này khá promising cho ai đang build AI products trên CF. Nhưng mà "yet another agent framework" cũng hơi mệt. Điểm khác biệt là nó chạy on edge nên latency thấp, cost rẻ. Đáng thử nếu đang dùng CF ecosystem rồi.
+Cloudflare vừa announce *Agent Lee* — basically 1 cái interface mới cho phép build AI agents chạy trực tiếp trên Cloudflare stack. Tích hợp Workers, KV, D1, R2 hết. Thay vì phải tự wire mọi thứ thì giờ có sẵn framework cho agentic workflows, chạy on edge nên latency thấp, cost rẻ.
 
 https://blog.cloudflare.com/introducing-agent-lee/
 — Dan Tech Daily News
 ---
-GitHub vừa drop *Secure Code Game* — kiểu CTF challenges nhưng focus vào AI agent security. Mày phải tìm vulnerabilities trong code mà AI agents generate, rồi patch lại. Hay ở chỗ nó simulate real-world scenarios chứ không phải toy examples.
-
-Cái này actually useful cho dân AppSec và ai đang ship AI features vào production. Vì thực tế LLM-generated code có nhiều security holes mà traditional tools không catch được. Free nên không có lý do gì không thử.
+GitHub vừa drop *Secure Code Game* — kiểu CTF challenges nhưng focus vào AI agent security. Phải tìm vulnerabilities trong code mà AI agents generate, rồi patch lại. Hay ở chỗ nó simulate real-world scenarios chứ không phải toy examples, free luôn.
 
 https://github.blog/security/hack-the-ai-agent/
 — Dan Tech Daily News
@@ -160,11 +154,11 @@ https://github.blog/security/hack-the-ai-agent/
 
 QUY TẮC:
 - Vietnglish tự nhiên, xen tiếng Anh như dev Việt chat hàng ngày
-- 2 đoạn rõ ràng: tóm tắt + phân tích. Cách nhau 1 dòng trống
-- Tổng khoảng 600-800 ký tự
+- CHỈ 1 đoạn tóm tắt, KHÔNG bình luận/đánh giá/opinion
+- Tổng khoảng 300-500 ký tự
 - Link gốc ở cuối, paste thẳng URL
-- Dòng cuối cùng luôn là "— Dan Tech Daily News"
-- Emoji: tối đa 1 cái hoặc không, đừng spam
+- Dòng cuối cùng luôn là "- Dan Tech Daily News"
+- Emoji: tối đa 3 cái hoặc không, đừng spam
 - Dùng *bold* cho keyword quan trọng, 1-2 chỗ thôi
 - KHÔNG bắt đầu bằng emoji, KHÔNG dùng ## headers
 - ${opener}`;
