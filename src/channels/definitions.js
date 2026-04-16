@@ -5,7 +5,8 @@
 
 import { bigTechBlogs } from '../presets/index.js';
 import { createAI } from '../ai/create-ai.js';
-import { TelegramOutput } from '../outputs/index.js';
+import { TelegramOutput, XOutput, FacebookOutput, ThreadsOutput } from '../outputs/index.js';
+import { KVTokenStore } from '../utils/token-store.js';
 
 /** Map provider name → env var for API key */
 const PROVIDER_KEY_MAP = {
@@ -86,10 +87,62 @@ export function defineChannels(env) {
     });
   }
 
-  // --- Future channels (uncomment when credentials configured) ---
-  // X channel:   see phase-03-x-output-plugin.md
-  // FB channel:  see phase-04-fb-threads-output.md
-  // Threads:     see phase-04-fb-threads-output.md
+  // --- X (Twitter) — uncomment when OAuth 2.0 credentials configured ---
+  // Requires: X_CLIENT_ID, TOKEN_ENCRYPTION_KEY, plus token stored in KV
+  if (env.X_CLIENT_ID && env.TOKEN_ENCRYPTION_KEY && env.NEWS_CACHE) {
+    const kvStore = new KVTokenStore(env.NEWS_CACHE, env.TOKEN_ENCRYPTION_KEY);
+    channels.push({
+      id: 'x-tech-vn',
+      sources: bigTechBlogs(),
+      ai: makeAI(env),
+      output: new XOutput({ kvTokenStore: kvStore, channelId: 'x-tech-vn' }),
+      prompt: { language: 'vi', style: 'thread', audience: 'Vietnamese devs on X', platform: 'x' },
+      mode: 'drip',
+      schedule: e(env, 'X_CRON_SCHEDULE', '0 0,6,12 * * *'),
+      batchSize: eInt(env, 'X_BATCH_SIZE', 3),
+      delayMs: 0,
+      maxArticles: 10,
+      maxArticlesPerSource: 3,
+      concurrency: 5,
+    });
+  }
+
+  // --- Facebook Page — uncomment when Meta app review approved ---
+  // Requires: FB_PAGE_TOKEN, FB_PAGE_ID
+  if (env.FB_PAGE_TOKEN && env.FB_PAGE_ID) {
+    channels.push({
+      id: 'fb-ai-vn',
+      sources: bigTechBlogs(),
+      ai: makeAI(env),
+      output: new FacebookOutput({ pageToken: env.FB_PAGE_TOKEN, pageId: env.FB_PAGE_ID }),
+      prompt: { language: 'vi', style: 'digest', audience: 'AI enthusiasts on Facebook', platform: 'facebook' },
+      mode: 'digest',
+      schedule: e(env, 'FB_CRON_SCHEDULE', '0 1 * * *'),
+      maxArticles: 10,
+      maxArticlesPerSource: 3,
+      concurrency: 5,
+    });
+  }
+
+  // --- Threads — uncomment when token stored in KV ---
+  // Requires: THREADS_USER_ID, TOKEN_ENCRYPTION_KEY, plus token in KV
+  if (env.THREADS_USER_ID && env.TOKEN_ENCRYPTION_KEY && env.NEWS_CACHE) {
+    const kvStore = new KVTokenStore(env.NEWS_CACHE, env.TOKEN_ENCRYPTION_KEY);
+    channels.push({
+      id: 'threads-dev-vn',
+      sources: bigTechBlogs(),
+      ai: makeAI(env),
+      output: new ThreadsOutput({ userId: env.THREADS_USER_ID, kvTokenStore: kvStore, channelId: 'threads-dev-vn' }),
+      prompt: { language: 'vi', style: 'bullet', audience: 'Junior devs on Threads', platform: 'threads' },
+      mode: 'drip',
+      schedule: e(env, 'THREADS_CRON_SCHEDULE', '0 2,8 * * *'),
+      batchSize: 2,
+      delayMs: 0,
+      maxArticles: 8,
+      maxArticlesPerSource: 3,
+      concurrency: 5,
+    });
+  }
 
   return channels;
 }

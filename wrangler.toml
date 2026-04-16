@@ -3,9 +3,9 @@ main = "src/adapters/cloudflare.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Channel runner: every 30min, each channel checks its own schedule via shouldRun()
+# Channel runner: every 30min + hourly token refresh for X/Threads
 [triggers]
-crons = ["*/30 * * * *"]
+crons = ["*/30 * * * *", "0 * * * *"]
 
 [[kv_namespaces]]
 binding = "NEWS_CACHE"
