@@ -257,9 +257,9 @@ export class NewsEngine {
       log(`[Engine] Got ${articles.length} article(s)`);
       if (articles.length === 0) return { status: 'skipped', reason: 'no_articles' };
 
-      // Dedup against previously sent articles
+      // Dedup against previously sent articles (skip if force)
       const before = articles.length;
-      articles = await this._dedup(articles);
+      if (!force) articles = await this._dedup(articles);
       log(`[Engine] ${articles.length} new (${before - articles.length} cached)`);
       if (articles.length === 0) return { status: 'skipped', reason: 'all_cached' };
 
