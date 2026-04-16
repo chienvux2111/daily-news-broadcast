@@ -54,6 +54,7 @@ export class RedditSource extends SourcePlugin {
         content: (post.selftext || '').substring(0, 500) || `${post.ups} upvotes, ${post.num_comments} comments`,
         source: this.name,
         category: 'Community',
+        imageUrl: extractRedditImage(post),
         publishedAt: new Date(post.created_utc * 1000),
         meta: {
           icon: this.icon,
@@ -63,4 +64,13 @@ export class RedditSource extends SourcePlugin {
         },
       }));
   }
+}
+
+function extractRedditImage(post) {
+  const preview = post.preview?.images?.[0]?.source?.url;
+  if (preview) return preview.replace(/&amp;/g, '&');
+
+  if (post.thumbnail && post.thumbnail.startsWith('http')) return post.thumbnail;
+
+  return undefined;
 }

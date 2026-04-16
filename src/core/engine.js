@@ -188,7 +188,7 @@ export class NewsEngine {
       for (const output of this.outputs) {
         try {
           const formatted = this._fitToOutput(content, output);
-          const result = await output.send(formatted);
+          const result = await output.send(formatted, { articles });
           outputResults.push({ id: output.id, name: output.name, ...result });
           log(`[Engine] ✓ ${output.name}: ${result.success ? 'OK' : result.error}`);
         } catch (error) {
@@ -316,7 +316,7 @@ export class NewsEngine {
           for (const output of this.outputs) {
             try {
               const formatted = this._fitToOutput(hookText, output);
-              const sendResult = await output.send(formatted);
+              const sendResult = await output.send(formatted, { article });
               log(`[Engine] ✓ [${i + 1}/${batch.length}] ${output.name}: ${article.title.substring(0, 50)}...`);
               results.push({ article: article.title, output: output.id, ...sendResult });
             } catch (err) {

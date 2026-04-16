@@ -21,7 +21,19 @@ export class TelegramOutput extends OutputPlugin {
   get name() { return 'Telegram'; }
   get maxLength() { return 4096; }
 
-  async send(content) {
+  async send(content, options = {}) {
+    const imageUrl = options.article?.imageUrl
+      || options.articles?.[0]?.imageUrl
+      || null;
+
+    if (imageUrl) {
+      return this._sendWithPhoto(content, imageUrl);
+    }
+
+    return this._sendTextOnly(content);
+  }
+
+  async _sendTextOnly(content) {
     const messages = splitSmart(content, this.maxLength);
     const results = [];
 
@@ -40,6 +52,84 @@ export class TelegramOutput extends OutputPlugin {
       messageId: results[0]?.messageId,
       meta: { parts: results.length },
     };
+  }
+
+  async _sendWithPhoto(content, imageUrl) {
+    const CAPTION_MAX = 1024;
+
+    if (content.length <= CAPTION_MAX) {
+      const result = await this._sendPhoto(imageUrl, content);
+      if (result.success) return result;
+      // sendPhoto failed (invalid URL, etc.) — fall back to text-only
+      return this._sendTextOnly(content);
+    }
+
+    // Content too long for caption — send photo first, then text
+    const photoResult = await this._sendPhoto(imageUrl, null);
+    await sleep(300);
+
+    const messages = splitSmart(content, this.maxLength);
+    const results = [photoResult];
+
+    for (let i = 0; i < messages.length; i++) {
+      const result = await this._sendOne(
+        i > 0 ? `(${i + 1}/${messages.length})\n\n${messages[i]}` : messages[i],
+        i > 0,
+      );
+      results.push(result);
+      if (i < messages.length - 1) await sleep(500);
+    }
+
+    const allOk = results.every(r => r.success);
+    return {
+      success: allOk,
+      messageId: results.find(r => r.success)?.messageId,
+      meta: { parts: results.length, hasPhoto: photoResult.success },
+    };
+  }
+
+  async _sendPhoto(photoUrl, caption) {
+    const url = `https://api.telegram.org/bot${this._config.botToken}/sendPhoto`;
+
+    try {
+      const body = {
+        chat_id: this._config.chatId,
+        photo: photoUrl,
+        disable_notification: this._config.silent,
+      };
+      if (caption) {
+        body.caption = caption;
+        body.parse_mode = 'Markdown';
+      }
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        // Markdown parse error in caption — retry as plain text
+        if (caption && (data.description?.includes('parse') || data.description?.includes('entities'))) {
+          body.caption = caption.replace(/\*([^*]+)\*/g, '$1').replace(/_([^_]+)_/g, '$1').replace(/`([^`]+)`/g, '$1');
+          delete body.parse_mode;
+          const retryRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const retryData = await retryRes.json();
+          return retryData.ok
+            ? { success: true, messageId: retryData.result.message_id }
+            : { success: false, error: retryData.description };
+        }
+        return { success: false, error: data.description };
+      }
+      return { success: true, messageId: data.result.message_id };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
   }
 
   async _sendOne(text, forceQuiet = false) {

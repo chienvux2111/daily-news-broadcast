@@ -69,6 +69,7 @@ export class RSSSource extends SourcePlugin {
       || extractTag(xml, 'dc:date');
 
     const resolvedUrl = resolveUrl(url, this._config.baseUrl || this._config.feedUrl);
+    const imageUrl = extractImageUrl(xml, rawContent);
 
     return {
       id: resolvedUrl || `${this.id}:${title}`,
@@ -77,6 +78,7 @@ export class RSSSource extends SourcePlugin {
       content: cleanHTML(rawContent).substring(0, 1000),
       source: this.name,
       category: this._config.category,
+      imageUrl: imageUrl || undefined,
       publishedAt: dateStr ? new Date(dateStr) : null,
       meta: { icon: this.icon },
     };
@@ -130,6 +132,31 @@ export function cleanHTML(html) {
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function extractImageUrl(xml, rawContent) {
+  // 1. <media:content url="..."> (prefer medium="image" if specified)
+  const mediaImage = xml.match(/<media:content[^>]*medium="image"[^>]*url="([^"]*)"/i)
+    || xml.match(/<media:content[^>]*url="([^"]*)"[^>]*medium="image"/i);
+  if (mediaImage) return mediaImage[1];
+
+  const mediaContent = extractAttr(xml, 'media:content', 'url');
+  if (mediaContent) return mediaContent;
+
+  // 2. <media:thumbnail url="...">
+  const mediaThumbnail = extractAttr(xml, 'media:thumbnail', 'url');
+  if (mediaThumbnail) return mediaThumbnail;
+
+  // 3. <enclosure type="image/...">
+  const enclosureMatch = xml.match(/<enclosure[^>]*type="image\/[^"]*"[^>]*url="([^"]*)"/i)
+    || xml.match(/<enclosure[^>]*url="([^"]*)"[^>]*type="image\/[^"]*"/i);
+  if (enclosureMatch) return enclosureMatch[1];
+
+  // 4. First <img src="..."> in raw content
+  const imgMatch = (rawContent || '').match(/<img[^>]*src="([^"]*)"/i);
+  if (imgMatch) return imgMatch[1];
+
+  return null;
 }
 
 function resolveUrl(url, base) {

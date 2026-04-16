@@ -24,6 +24,7 @@
  * @property {string}  source      - Tên nguồn
  * @property {string}  [category]  - Phân loại
  * @property {string}  [author]    - Tác giả
+ * @property {string}  [imageUrl]  - URL ảnh cover/hero của bài viết
  * @property {Date}    [publishedAt] - Ngày xuất bản
  * @property {Object}  [meta]      - Metadata tuỳ ý (tags, images, etc.)
  */

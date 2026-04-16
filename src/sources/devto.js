@@ -42,6 +42,7 @@ export class DevToSource extends SourcePlugin {
         source: this.name,
         category: (p.tags || []).join(', ') || 'Dev Community',
         author: p.user?.name,
+        imageUrl: p.cover_image || undefined,
         publishedAt: p.published_at ? new Date(p.published_at) : null,
         meta: {
           icon: this.icon,
