@@ -60,7 +60,10 @@ export default {
   async scheduled(event, env, ctx) {
     const mode = (env.BROADCAST_MODE || 'drip').toLowerCase();
     if (mode === 'drip') {
-      ctx.waitUntil(createEngine(env).runDrip({ delayMs: parseInt(env.DRIP_DELAY_MS || '5000') }));
+      ctx.waitUntil(createEngine(env).runDrip({
+        batchSize: parseInt(env.DRIP_BATCH_SIZE || '1'),
+        delayMs: parseInt(env.DRIP_DELAY_MS || '3000'),
+      }));
     } else {
       ctx.waitUntil(createEngine(env).run());
     }
@@ -80,7 +83,11 @@ export default {
       const force = url.searchParams.get('force') === 'true';
       const mode = url.searchParams.get('mode') || env.BROADCAST_MODE || 'drip';
       if (mode === 'drip') {
-        ctx.waitUntil(createEngine(env).runDrip({ force, delayMs: parseInt(env.DRIP_DELAY_MS || '5000') }));
+        ctx.waitUntil(createEngine(env).runDrip({
+          force,
+          batchSize: parseInt(env.DRIP_BATCH_SIZE || '1'),
+          delayMs: parseInt(env.DRIP_DELAY_MS || '3000'),
+        }));
       } else {
         ctx.waitUntil(createEngine(env).run({ force }));
       }

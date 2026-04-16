@@ -3,8 +3,11 @@ main = "src/adapters/cloudflare.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
+# Drip: 5 crons/day (CF free limit), 1 article each = 5 articles from cron
+# Plus fetches queue remaining articles on HTTP hits (self-ping from cron)
+# 7:00, 10:00, 13:00, 17:00, 21:00 VN (UTC+7 → UTC: 0,3,6,10,14)
 [triggers]
-crons = ["0 7 * * *"]
+crons = ["0 0 * * *", "0 3 * * *", "0 6 * * *", "0 10 * * *", "0 14 * * *"]
 
 [[kv_namespaces]]
 binding = "NEWS_CACHE"
@@ -14,8 +17,9 @@ id = "8d9fb458825a46b68c7efcca93133b51"
 AI_PROVIDER = "openai"
 AI_MODEL = "gpt-4o-mini"
 BROADCAST_MODE = "drip"
-MAX_ARTICLES_PER_SOURCE = "3"
-MAX_ARTICLES = "12"
+DRIP_BATCH_SIZE = "3"
 DRIP_DELAY_MS = "5000"
+MAX_ARTICLES_PER_SOURCE = "3"
+MAX_ARTICLES = "15"
 CONCURRENCY_LIMIT = "5"
 SUMMARY_LANGUAGE = "vi"
