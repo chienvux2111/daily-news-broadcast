@@ -5,6 +5,7 @@
  */
 
 import { SourcePlugin } from '../core/contracts.js';
+import { enrichMissingImages } from './og-image.js';
 
 export class GitHubTrendingSource extends SourcePlugin {
   /**
@@ -49,7 +50,7 @@ export class GitHubTrendingSource extends SourcePlugin {
     if (!response.ok) return [];
 
     const data = await response.json();
-    return (data.items || []).slice(0, limit).map(repo => ({
+    const articles = (data.items || []).slice(0, limit).map(repo => ({
       id: `github:${repo.full_name}`,
       title: `${repo.full_name} — ${repo.description || 'No description'}`,
       url: repo.html_url,
@@ -71,5 +72,8 @@ export class GitHubTrendingSource extends SourcePlugin {
         topics: repo.topics,
       },
     }));
+
+    await enrichMissingImages(articles);
+    return articles;
   }
 }

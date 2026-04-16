@@ -4,6 +4,7 @@
  */
 
 import { SourcePlugin } from '../core/contracts.js';
+import { enrichMissingImages } from './og-image.js';
 
 export class HackerNewsSource extends SourcePlugin {
   /**
@@ -44,7 +45,7 @@ export class HackerNewsSource extends SourcePlugin {
     if (!response.ok) return [];
 
     const data = await response.json();
-    return (data.hits || [])
+    const articles = (data.hits || [])
       .filter(hit => (hit.points || 0) >= minPoints)
       .slice(0, limit)
       .map(hit => ({
@@ -62,5 +63,8 @@ export class HackerNewsSource extends SourcePlugin {
           hnUrl: `https://news.ycombinator.com/item?id=${hit.objectID}`,
         },
       }));
+
+    await enrichMissingImages(articles);
+    return articles;
   }
 }

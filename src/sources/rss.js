@@ -4,6 +4,7 @@
  */
 
 import { SourcePlugin } from '../core/contracts.js';
+import { enrichMissingImages } from './og-image.js';
 
 export class RSSSource extends SourcePlugin {
   /**
@@ -38,7 +39,12 @@ export class RSSSource extends SourcePlugin {
       articles = articles.filter(a => !a.publishedAt || a.publishedAt > since);
     }
 
-    return articles.slice(0, limit);
+    articles = articles.slice(0, limit);
+
+    // Fetch og:image for articles missing imageUrl
+    await enrichMissingImages(articles);
+
+    return articles;
   }
 
   _parseXML(xml) {
