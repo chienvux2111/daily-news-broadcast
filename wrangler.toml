@@ -3,10 +3,9 @@ main = "src/adapters/cloudflare.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Drip: 3 crons/day, each pops 5 articles sent 60min apart
-# 8:00, 14:00, 20:00 VN (UTC+7 → UTC: 1, 7, 13)
+# Channel runner: every 30min, each channel checks its own schedule via shouldRun()
 [triggers]
-crons = ["0 1 * * *", "0 7 * * *", "0 13 * * *"]
+crons = ["*/30 * * * *"]
 
 [[kv_namespaces]]
 binding = "NEWS_CACHE"
@@ -22,3 +21,4 @@ MAX_ARTICLES_PER_SOURCE = "3"
 MAX_ARTICLES = "15"
 CONCURRENCY_LIMIT = "5"
 SUMMARY_LANGUAGE = "vi"
+CRON_SCHEDULE = "0 1,7,13 * * *"

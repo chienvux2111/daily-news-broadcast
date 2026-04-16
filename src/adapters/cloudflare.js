@@ -1,79 +1,38 @@
 /**
  * Adapter: Cloudflare Worker
  * Deploy: wrangler deploy
+ *
+ * Uses channel runner — each channel is an independent engine instance
  */
 
-import { NewsEngine, CloudflareKVCache, createScoringMiddleware, createSemanticDedupMiddleware } from '../core/index.js';
-import { bigTechBlogs } from '../presets/index.js';
-import { createAI } from '../ai/create-ai.js';
-import { TelegramOutput } from '../outputs/index.js';
+import { CloudflareKVCache } from '../core/index.js';
+import { buildEngine, defineChannels, runChannels } from '../channels/index.js';
 
-/** Map CF Worker env bindings to createAI config */
-const PROVIDER_KEY_MAP = {
-  claude: 'ANTHROPIC_API_KEY', anthropic: 'ANTHROPIC_API_KEY',
-  openai: 'OPENAI_API_KEY',
-  groq: 'GROQ_API_KEY',
-  gemini: 'GEMINI_API_KEY', google: 'GEMINI_API_KEY',
-  qwen: 'QWEN_API_KEY', alibaba: 'QWEN_API_KEY', dashscope: 'QWEN_API_KEY',
-  deepseek: 'DEEPSEEK_API_KEY',
-  openrouter: 'OPENROUTER_API_KEY',
-  together: 'TOGETHER_API_KEY',
-  custom: 'CUSTOM_AI_API_KEY',
-};
-
-function createEngine(cfEnv) {
-  const provider = (cfEnv.AI_PROVIDER || 'claude').toLowerCase();
-  const keyEnv = PROVIDER_KEY_MAP[provider];
-
-  const ai = createAI({
-    provider,
-    model: cfEnv.AI_MODEL || undefined,
-    apiKey: keyEnv ? cfEnv[keyEnv] : undefined,
-    baseUrl: provider === 'custom' ? cfEnv.CUSTOM_AI_BASE_URL : undefined,
-    name: provider === 'custom' ? (cfEnv.CUSTOM_AI_NAME || undefined) : undefined,
-  });
-  const engine = new NewsEngine();
-  for (const source of bigTechBlogs()) engine.addSource(source);
-  if (ai) engine.useAI(ai);
-
-  engine.addOutput(new TelegramOutput({
-    botToken: cfEnv.TELEGRAM_BOT_TOKEN,
-    chatId: cfEnv.TELEGRAM_CHAT_ID,
-  }));
-
-  const maxArticles = parseInt(cfEnv.MAX_ARTICLES || '12');
-
-  engine
-    .useCache(new CloudflareKVCache(cfEnv.NEWS_CACHE))
-    .use(createScoringMiddleware({ maxArticles }))
-    .use(createSemanticDedupMiddleware())
-    .configure({
-      maxArticlesPerSource: parseInt(cfEnv.MAX_ARTICLES_PER_SOURCE || '3'),
-      concurrency: parseInt(cfEnv.CONCURRENCY_LIMIT || '5'),
-      language: cfEnv.SUMMARY_LANGUAGE || 'vi',
-    });
-
-  return engine;
+/** Find channel by id or return first */
+function findChannel(channels, id) {
+  if (id) return channels.find(c => c.id === id) || null;
+  return channels[0] || null;
 }
 
 export default {
   async scheduled(event, env, ctx) {
-    const mode = (env.BROADCAST_MODE || 'drip').toLowerCase();
-    if (mode === 'drip') {
-      ctx.waitUntil(createEngine(env).runDrip({
-        batchSize: parseInt(env.DRIP_BATCH_SIZE || '5'),
-        delayMs: parseInt(env.DRIP_DELAY_MS || '3600000'),
-      }));
-    } else {
-      ctx.waitUntil(createEngine(env).run());
-    }
+    const channels = defineChannels(env);
+    const cache = new CloudflareKVCache(env.NEWS_CACHE);
+    const now = new Date(event.scheduledTime);
+    ctx.waitUntil(runChannels(channels, { cache, now }));
   },
 
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const channels = defineChannels(env);
+    const cache = new CloudflareKVCache(env.NEWS_CACHE);
 
     if (url.pathname === '/' || url.pathname === '/health') {
-      return json({ status: 'ok', time: new Date().toISOString() });
+      return json({
+        status: 'ok',
+        time: new Date().toISOString(),
+        channels: channels.map(c => ({ id: c.id, mode: c.mode, schedule: c.schedule })),
+      });
     }
 
     if (url.pathname === '/trigger' && request.method === 'POST') {
@@ -81,24 +40,27 @@ export default {
         return new Response('Unauthorized', { status: 401 });
       }
       const force = url.searchParams.get('force') === 'true';
-      const mode = url.searchParams.get('mode') || env.BROADCAST_MODE || 'drip';
-      if (mode === 'drip') {
-        ctx.waitUntil(createEngine(env).runDrip({
-          force,
-          batchSize: parseInt(env.DRIP_BATCH_SIZE || '1'),
-          delayMs: parseInt(env.DRIP_DELAY_MS || '3000'),
-        }));
-      } else {
-        ctx.waitUntil(createEngine(env).run({ force }));
+      const channelId = url.searchParams.get('channel');
+
+      if (channelId) {
+        const ch = findChannel(channels, channelId);
+        if (!ch) return json({ error: `Channel "${channelId}" not found` }, 404);
+        ctx.waitUntil(runChannels([ch], { cache, now: new Date(), force }));
+        return json({ message: 'Triggered', channel: channelId, force });
       }
-      return json({ message: 'Triggered', force, mode });
+
+      ctx.waitUntil(runChannels(channels, { cache, now: new Date(), force }));
+      return json({ message: 'Triggered all', force, channels: channels.map(c => c.id) });
     }
 
     if (url.pathname === '/queue') {
       if (env.TRIGGER_SECRET && request.headers.get('Authorization') !== `Bearer ${env.TRIGGER_SECRET}`) {
         return new Response('Unauthorized', { status: 401 });
       }
-      const queue = await createEngine(env).getQueue();
+      const channelId = url.searchParams.get('channel');
+      const ch = findChannel(channels, channelId);
+      if (!ch) return json({ error: 'No channel found' }, 404);
+      const queue = await buildEngine(ch, cache).getQueue();
       return json(queue);
     }
 
@@ -106,7 +68,10 @@ export default {
       if (env.TRIGGER_SECRET && request.headers.get('Authorization') !== `Bearer ${env.TRIGGER_SECRET}`) {
         return new Response('Unauthorized', { status: 401 });
       }
-      const result = await createEngine(env).generate();
+      const channelId = url.searchParams.get('channel');
+      const ch = findChannel(channels, channelId);
+      if (!ch) return json({ error: 'No channel found' }, 404);
+      const result = await buildEngine(ch, cache).generate();
       return json(result);
     }
 
@@ -114,8 +79,9 @@ export default {
   },
 };
 
-function json(data) {
+function json(data, status = 200) {
   return new Response(JSON.stringify(data, null, 2), {
+    status,
     headers: { 'Content-Type': 'application/json' },
   });
 }

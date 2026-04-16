@@ -4,3 +4,4 @@ export { MemoryCache, FileCache, CloudflareKVCache, RedisCache } from './caches.
 export { createScoringMiddleware } from './scoring.js';
 export { createSemanticDedupMiddleware } from './semantic-dedup.js';
 export { groupByCategory } from './grouping.js';
+export { PrefixedCache } from './prefixed-cache.js';
