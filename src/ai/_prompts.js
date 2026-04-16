@@ -1,10 +1,15 @@
 /**
  * Shared prompt builder for all AI plugins
- * Generates system + user prompt based on language, style, and audience
+ * Generates system + user prompt based on language, style, audience, and platform
  * Supports both flat article lists and category-grouped articles
  */
 
 import { groupByCategory } from '../core/grouping.js';
+import { PLATFORM_RULES, HOOK_RULES } from './platform-rules.js';
+
+// ============================================
+// Style prompts (editorial instructions — platform-agnostic)
+// ============================================
 
 const STYLES = {
   digest: {
@@ -22,10 +27,7 @@ FORMAT:
 - Nếu bài có nhiều nguồn (alsoFrom), note "Cũng được report bởi: ..."
 - "💡 KEY TAKEAWAY" — 2-3 insight quan trọng nhất
 - "🤔 DISCUSSION" — 1 câu hỏi mở khuyến khích thảo luận
-- Hashtags cuối
-- Dùng Telegram formatting: *bold*, _italic_
-- KHÔNG dùng ## markdown headers
-- Tối đa 4000 ký tự`,
+- Hashtags cuối`,
 
     en: (audience) => `You are a tech news curator & editorial analyst for ${audience}.
 
@@ -41,10 +43,7 @@ FORMAT:
 - If article has multiple sources (alsoFrom), note "Also reported by: ..."
 - "💡 KEY TAKEAWAY" — 2-3 most important insights
 - "🤔 DISCUSSION" — 1 open question to encourage discussion
-- Hashtags at end
-- Use Telegram formatting: *bold*, _italic_
-- NO markdown headers (##)
-- Max 4000 characters`,
+- Hashtags at end`,
   },
 
   bullet: {
@@ -53,8 +52,8 @@ FORMAT:
   },
 
   thread: {
-    vi: () => `Viết chuỗi bài đăng (thread) cho mạng xã hội từ danh sách tin kỹ thuật. Mỗi bài 280 ký tự. Tiếng Việt, giữ thuật ngữ tiếng Anh. Đánh số 1/n, 2/n...`,
-    en: () => `Write a social media thread from tech articles. Each post max 280 chars. Number as 1/n, 2/n...`,
+    vi: () => `Viết chuỗi bài đăng (thread) cho mạng xã hội từ danh sách tin kỹ thuật. Tiếng Việt, giữ thuật ngữ tiếng Anh. Đánh số 1/n, 2/n...`,
+    en: () => `Write a social media thread from tech articles. Number as 1/n, 2/n...`,
   },
 
   newsletter: {
@@ -68,19 +67,13 @@ Format: "📊 WEEKLY TECH RECAP - Tuần [N]"
 - Top 3 "Must Read" — phân tích sâu 4-5 câu mỗi bài, tại sao quan trọng
 - "Trending Topics" — các chủ đề xuất hiện nhiều lần trong tuần
 - "Quick Hits" — các tin ngắn khác, 1 dòng mỗi tin
-- "🔮 NEXT WEEK" — dự đoán/theo dõi
-- Dùng Telegram formatting: *bold*, _italic_
-- KHÔNG dùng ## markdown headers
-- Tối đa 6000 ký tự.`,
+- "🔮 NEXT WEEK" — dự đoán/theo dõi`,
     en: (audience) => `Write a weekly tech recap for ${audience}.
 Format: "📊 WEEKLY TECH RECAP - Week [N]"
 - Top 3 "Must Read" — deep analysis 4-5 sentences each, why it matters
 - "Trending Topics" — themes appearing multiple times this week
 - "Quick Hits" — other news in 1 line each
-- "🔮 NEXT WEEK" — predictions/watch items
-- Use Telegram formatting: *bold*, _italic_
-- NO markdown headers (##)
-- Max 6000 characters.`,
+- "🔮 NEXT WEEK" — predictions/watch items`,
   },
 
   mustread: {
@@ -89,36 +82,31 @@ Format: "📊 WEEKLY TECH RECAP - Week [N]"
 - Impact với developers
 - Key technical details
 - Action items cho readers
-Format: "⭐ MUST READ - [DD/MM/YYYY]"
-- Dùng Telegram formatting: *bold*, _italic_
-- KHÔNG dùng ## markdown headers
-- Tối đa 4000 ký tự`,
+Format: "⭐ MUST READ - [DD/MM/YYYY]"`,
     en: (audience) => `Pick the 3 MOST IMPORTANT articles for ${audience}. Deep analysis per article (5-6 sentences):
 - Why this article matters
 - Impact on developers
 - Key technical details
 - Action items for readers
-Format: "⭐ MUST READ - [DD/MM/YYYY]"
-- Use Telegram formatting: *bold*, _italic_
-- NO markdown headers (##)
-- Max 4000 characters`,
+Format: "⭐ MUST READ - [DD/MM/YYYY]"`,
   },
 };
 
+// ============================================
+// Hook prompt builder (drip mode — single article)
+// ============================================
+
 /**
- * Build a prompt for generating a single-article hook message
- * Used by drip mode to create individual Telegram posts
- *
  * @param {Article} article
  * @param {Object} options
+ * @param {string} [options.platform='telegram']
  * @returns {{ system: string, user: string }}
  */
 export function buildHookPrompt(article, options = {}) {
-  // options kept for future extensibility (language, audience)
+  const { platform = 'telegram' } = options;
   const meta = article.meta || {};
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-  // Pick a random opening style to force variety
   const openers = [
     'Mở đầu bằng 1 hot take ngắn gọn',
     'Mở đầu bằng 1 câu hỏi rhetorical',
@@ -129,38 +117,16 @@ export function buildHookPrompt(article, options = {}) {
     'Mở đầu thẳng vào vấn đề, không dạo đầu',
   ];
   const opener = openers[Math.floor(Math.random() * openers.length)];
+  const rules = HOOK_RULES[platform] || HOOK_RULES.telegram;
 
-  const system = `Viết 1 post Telegram tóm tắt bài tech news bên dưới. Viết như dev Việt share tin cho anh em — Vietnglish tự nhiên, không formal, không robot.
+  const system = `Viết 1 post tóm tắt bài tech news bên dưới. Viết như dev Việt share tin cho anh em — Vietnglish tự nhiên, không formal, không robot.
 
 CẤU TRÚC 1 ĐOẠN TÓM TẮT:
-
 Chuyện gì đang xảy ra? Ai làm gì? Có gì đáng chú ý? Tóm lại ngắn gọn, dễ hiểu, giữ thuật ngữ tech tiếng Anh. (3-5 câu)
 
-Cuối: link gốc + dòng "- Dan Tech Daily News"
+${rules.examples}
 
-VÍ DỤ TONE ĐÚNG (học cách viết, KHÔNG copy):
-
----
-Cloudflare vừa announce *Agent Lee* — basically 1 cái interface mới cho phép build AI agents chạy trực tiếp trên Cloudflare stack. Tích hợp Workers, KV, D1, R2 hết. Thay vì phải tự wire mọi thứ thì giờ có sẵn framework cho agentic workflows, chạy on edge nên latency thấp, cost rẻ.
-
-https://blog.cloudflare.com/introducing-agent-lee/
-— Dan Tech Daily News
----
-GitHub vừa drop *Secure Code Game* — kiểu CTF challenges nhưng focus vào AI agent security. Phải tìm vulnerabilities trong code mà AI agents generate, rồi patch lại. Hay ở chỗ nó simulate real-world scenarios chứ không phải toy examples, free luôn.
-
-https://github.blog/security/hack-the-ai-agent/
-— Dan Tech Daily News
----
-
-QUY TẮC:
-- Vietnglish tự nhiên, xen tiếng Anh như dev Việt chat hàng ngày
-- CHỈ 1 đoạn tóm tắt, KHÔNG bình luận/đánh giá/opinion
-- Tổng khoảng 300-500 ký tự
-- Link gốc ở cuối, paste thẳng URL
-- Dòng cuối cùng luôn là "- Dan Tech Daily News"
-- Emoji: tối đa 3 cái hoặc không, đừng spam
-- Dùng *bold* cho keyword quan trọng, 1-2 chỗ thôi
-- KHÔNG bắt đầu bằng emoji, KHÔNG dùng ## headers
+${rules.format}
 - ${opener}`;
 
   const articleInfo = [
@@ -181,9 +147,10 @@ QUY TẮC:
   };
 }
 
-/**
- * Format a single article for the prompt
- */
+// ============================================
+// Digest prompt builder
+// ============================================
+
 function formatArticle(a, index) {
   const meta = a.meta || {};
   const icon = meta.icon || '📰';
@@ -198,26 +165,17 @@ function formatArticle(a, index) {
   return parts.join('\n');
 }
 
-/**
- * Format articles — auto-groups by category if articles have mixed categories
- */
 function formatArticleList(articles) {
   const categories = new Set(articles.map(a => a.category).filter(Boolean));
-
-  // Flat list if all same category or no categories
   if (categories.size <= 1) {
     return articles.map((a, i) => formatArticle(a, i + 1)).join('\n\n');
   }
-
-  // Grouped by category
   const groups = groupByCategory(articles);
   const sections = [];
   let idx = 1;
   for (const [category, group] of groups) {
     sections.push(`=== ${category} ===`);
-    for (const a of group) {
-      sections.push(formatArticle(a, idx++));
-    }
+    for (const a of group) sections.push(formatArticle(a, idx++));
     sections.push('');
   }
   return sections.join('\n');
@@ -230,19 +188,21 @@ function formatArticleList(articles) {
  * @param {string} [options.language='vi']
  * @param {string} [options.style='digest']
  * @param {string} [options.audience='senior developers']
+ * @param {string} [options.platform='telegram']
  * @returns {{ system: string, user: string }}
  */
 export function buildPrompt(articles, options = {}) {
-  const { language = 'vi', style = 'digest', audience = 'senior developers' } = options;
+  const { language = 'vi', style = 'digest', audience = 'senior developers', platform = 'telegram' } = options;
 
   const styleFn = STYLES[style]?.[language] || STYLES.digest[language] || STYLES.digest.vi;
   const systemPrompt = typeof styleFn === 'function' ? styleFn(audience) : styleFn;
+  const platformRules = PLATFORM_RULES[platform] || PLATFORM_RULES.telegram;
 
   const articleList = formatArticleList(articles);
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   return {
-    system: systemPrompt,
+    system: `${systemPrompt}\n\n${platformRules}`,
     user: `Today's date is ${today}.\n\nHere are today's articles:\n\n${articleList}\n\nCreate the digest now.`,
   };
 }
