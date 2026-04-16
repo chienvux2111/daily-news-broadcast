@@ -41,10 +41,15 @@ export class HTMLScraperSource extends SourcePlugin {
     const articles = [];
     const seen = new Set();
 
+    // Extract og:image as fallback for articles without their own image
+    const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]*)"/i)
+      || html.match(/<meta[^>]*content="([^"]*)"[^>]*property="og:image"/i);
+    const ogImage = ogImageMatch ? ogImageMatch[1] : null;
+
     // Strategy 1: <article> blocks
     const articleBlocks = html.match(/<article[^>]*>[\s\S]*?<\/article>/gi) || [];
     for (const block of articleBlocks) {
-      const article = this._parseBlock(block);
+      const article = this._parseBlock(block, ogImage);
       if (article && !seen.has(article.url)) {
         seen.add(article.url);
         articles.push(article);
@@ -67,6 +72,7 @@ export class HTMLScraperSource extends SourcePlugin {
           content: '',
           source: this.name,
           category: this._config.category,
+          imageUrl: ogImage ? this._resolveUrl(ogImage) : undefined,
           publishedAt: null,
           meta: { icon: this.icon },
         });
@@ -76,16 +82,18 @@ export class HTMLScraperSource extends SourcePlugin {
     return articles;
   }
 
-  _parseBlock(block) {
+  _parseBlock(block, ogImage = null) {
     const linkMatch = block.match(/<a[^>]*href="([^"]*)"[^>]*>/);
     const titleMatch = block.match(/<h[1-4][^>]*>([\s\S]*?)<\/h[1-4]>/i)
       || block.match(/<a[^>]*>([^<]{10,})<\/a>/);
     const descMatch = block.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
     const dateMatch = block.match(/<time[^>]*datetime="([^"]*)"/);
+    const imgMatch = block.match(/<img[^>]*src="([^"]*)"/i);
 
     if (!linkMatch || !titleMatch) return null;
 
     const url = this._resolveUrl(linkMatch[1]);
+    const imageUrl = imgMatch ? this._resolveUrl(imgMatch[1]) : ogImage ? this._resolveUrl(ogImage) : undefined;
     return {
       id: url,
       title: cleanHTML(titleMatch[1]),
@@ -93,6 +101,7 @@ export class HTMLScraperSource extends SourcePlugin {
       content: descMatch ? cleanHTML(descMatch[1]).substring(0, 500) : '',
       source: this.name,
       category: this._config.category,
+      imageUrl,
       publishedAt: dateMatch ? new Date(dateMatch[1]) : null,
       meta: { icon: this.icon },
     };
