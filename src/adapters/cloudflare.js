@@ -61,8 +61,8 @@ export default {
     const mode = (env.BROADCAST_MODE || 'drip').toLowerCase();
     if (mode === 'drip') {
       ctx.waitUntil(createEngine(env).runDrip({
-        batchSize: parseInt(env.DRIP_BATCH_SIZE || '1'),
-        delayMs: parseInt(env.DRIP_DELAY_MS || '3000'),
+        batchSize: parseInt(env.DRIP_BATCH_SIZE || '5'),
+        delayMs: parseInt(env.DRIP_DELAY_MS || '3600000'),
       }));
     } else {
       ctx.waitUntil(createEngine(env).run());
@@ -92,6 +92,14 @@ export default {
         ctx.waitUntil(createEngine(env).run({ force }));
       }
       return json({ message: 'Triggered', force, mode });
+    }
+
+    if (url.pathname === '/queue') {
+      if (env.TRIGGER_SECRET && request.headers.get('Authorization') !== `Bearer ${env.TRIGGER_SECRET}`) {
+        return new Response('Unauthorized', { status: 401 });
+      }
+      const queue = await createEngine(env).getQueue();
+      return json(queue);
     }
 
     if (url.pathname === '/preview') {

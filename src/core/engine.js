@@ -224,17 +224,17 @@ export class NewsEngine {
    * First run of the day: fetch → score → store top N in cache queue "drip:queue:{date}"
    * Every run (including first): pop batchSize articles from queue → generate hook → send
    *
-   * With 5 crons/day and batchSize=3: 15 articles spread across the day.
+   * With 3 crons/day and batchSize=5: 15 articles spread across the day (60min apart).
    *
    * @param {Object} [runOptions]
    * @param {boolean} [runOptions.force=false]      - Re-fetch even if queue exists
    * @param {boolean} [runOptions.dryRun=false]     - Don't send to outputs
-   * @param {number}  [runOptions.batchSize=3]      - Articles per run
-   * @param {number}  [runOptions.delayMs=5000]     - Delay between messages in same batch (ms)
+   * @param {number}  [runOptions.batchSize=5]      - Articles per run
+   * @param {number}  [runOptions.delayMs=3600000]  - Delay between messages in same batch (ms, default 60min)
    * @returns {Promise<DripResult>}
    */
   async runDrip(runOptions = {}) {
-    const { force = false, dryRun = false, batchSize = 3, delayMs = 5000 } = runOptions;
+    const { force = false, dryRun = false, batchSize = 5, delayMs = 3_600_000 } = runOptions;
     const log = this.logger;
     const startTime = Date.now();
 
@@ -351,6 +351,25 @@ export class NewsEngine {
       stats: { ...this._stats(batch.length, durationMs), mode: 'drip', remaining: queue.length },
       aiUsage: totalUsage,
     };
+  }
+
+  /**
+   * Get current drip queue status for today
+   * @returns {Promise<{ date: string, remaining: number, articles: Array }>}
+   */
+  async getQueue() {
+    if (!this.cache) return { date: dateKey(), remaining: 0, articles: [] };
+    const queueKey = `drip:queue:${dateKey()}`;
+    const cached = await this.cache.get(queueKey);
+    if (!cached) return { date: dateKey(), remaining: 0, articles: [] };
+    try {
+      const queue = JSON.parse(cached);
+      return {
+        date: dateKey(),
+        remaining: queue.length,
+        articles: queue.map(a => ({ id: a.id, title: a.title, url: a.url, source: a.source })),
+      };
+    } catch { return { date: dateKey(), remaining: 0, articles: [] }; }
   }
 
   /**

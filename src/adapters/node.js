@@ -135,9 +135,10 @@ async function runPreview() {
 
 async function runDrip(force = false) {
   const engine = createEngine();
-  const delayMs = parseInt(env('DRIP_DELAY_MS', '5000'));
-  console.log(`💧 Drip mode — sending articles one by one (${delayMs}ms delay)...\n`);
-  const result = await engine.runDrip({ force, delayMs });
+  const delayMs = parseInt(env('DRIP_DELAY_MS', '3600000'));
+  console.log(`💧 Drip mode — sending ${env('DRIP_BATCH_SIZE', '5')} articles (${delayMs / 60000}min apart)...\n`);
+  const batchSize = parseInt(env('DRIP_BATCH_SIZE', '5'));
+  const result = await engine.runDrip({ force, delayMs, batchSize });
   console.log('\n📊 Result:', JSON.stringify(result.stats, null, 2));
   if (engine.cache.disconnect) await engine.cache.disconnect();
 }
