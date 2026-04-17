@@ -86,7 +86,7 @@ export async function runChannels(channels, { cache, now = new Date(), force = f
     try {
       const engine = buildEngine(ch, cache);
       const result = ch.mode === 'drip'
-        ? await engine.runDrip({ batchSize: ch.batchSize || 5, delayMs: ch.delayMs || 3_600_000 })
+        ? await engine.runDrip({ batchSize: ch.batchSize || 5, delayMs: ch.delayMs ?? 0 })
         : await engine.run({ force });
 
       const ms = Date.now() - start;

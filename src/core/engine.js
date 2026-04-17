@@ -230,11 +230,11 @@ export class NewsEngine {
    * @param {boolean} [runOptions.force=false]      - Re-fetch even if queue exists
    * @param {boolean} [runOptions.dryRun=false]     - Don't send to outputs
    * @param {number}  [runOptions.batchSize=5]      - Articles per run
-   * @param {number}  [runOptions.delayMs=3600000]  - Delay between messages in same batch (ms, default 60min)
+   * @param {number}  [runOptions.delayMs=0]         - Delay between messages in same batch (ms)
    * @returns {Promise<DripResult>}
    */
   async runDrip(runOptions = {}) {
-    const { force = false, dryRun = false, batchSize = 5, delayMs = 3_600_000 } = runOptions;
+    const { force = false, dryRun = false, batchSize = 5, delayMs = 0 } = runOptions;
     const log = this.logger;
     const startTime = Date.now();
 
@@ -275,22 +275,19 @@ export class NewsEngine {
       log(`[Engine] Queue loaded: ${queue.length} articles remaining`);
     }
 
-    // Pop batch from front of queue
-    const batch = queue.splice(0, batchSize);
+    // Peek batch (don't remove yet — save queue progressively after each send)
+    const batch = queue.slice(0, batchSize);
     if (batch.length === 0) {
       log('[Engine] Queue empty, nothing to send');
       return { status: 'skipped', reason: 'queue_empty' };
     }
-
-    // Save updated queue (remaining articles)
-    await this.cache.set(queueKey, JSON.stringify(queue), 24 * 60 * 60 * 1000);
 
     // Generate hook + send each article
     const { buildHookPrompt } = await import('../ai/_prompts.js');
     const results = [];
     let totalUsage = { input: 0, output: 0 };
 
-    log(`[Engine] Sending ${batch.length} articles (${queue.length} remaining in queue)...`);
+    log(`[Engine] Sending ${batch.length} articles (${queue.length - batch.length} remaining in queue)...`);
 
     for (let i = 0; i < batch.length; i++) {
       const article = batch[i];
@@ -331,13 +328,19 @@ export class NewsEngine {
           log('---');
           results.push({ article: article.title, hook: hookText, dryRun: true });
         }
-
-        if (i < batch.length - 1 && !dryRun) {
-          await sleep(delayMs);
-        }
       } catch (err) {
         log(`[Engine] ✗ [${i + 1}/${batch.length}] Hook failed: ${err.message}`);
         results.push({ article: article.title, success: false, error: err.message });
+      }
+
+      // Persist queue after each article (prevents data loss on worker timeout)
+      if (!dryRun) {
+        queue.shift();
+        await this.cache.set(queueKey, JSON.stringify(queue), 24 * 60 * 60 * 1000);
+      }
+
+      if (i < batch.length - 1 && !dryRun && delayMs > 0) {
+        await sleep(delayMs);
       }
     }
 

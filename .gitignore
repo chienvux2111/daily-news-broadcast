@@ -8,3 +8,5 @@ dist/
 output/
 *.log
 .claude/session-state/
+plans/
+repomix-output.*

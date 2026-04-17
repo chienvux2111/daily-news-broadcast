@@ -80,7 +80,7 @@ export function defineChannels(env) {
       mode: e(env, 'BROADCAST_MODE', 'drip'),
       schedule: e(env, 'CRON_SCHEDULE', '0 1,7,13 * * *'),
       batchSize: eInt(env, 'DRIP_BATCH_SIZE', 5),
-      delayMs: eInt(env, 'DRIP_DELAY_MS', 3_600_000),
+      delayMs: eInt(env, 'DRIP_DELAY_MS', 0),
       maxArticles: eInt(env, 'MAX_ARTICLES', 12),
       maxArticlesPerSource: eInt(env, 'MAX_ARTICLES_PER_SOURCE', 3),
       concurrency: eInt(env, 'CONCURRENCY_LIMIT', 5),
