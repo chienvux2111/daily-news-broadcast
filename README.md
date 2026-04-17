@@ -1,32 +1,33 @@
 # 🔥 NewsEngine — Portable Tech News Aggregator
 
-Plugin-based news aggregation engine. Fetch từ bất kỳ nguồn nào, tóm tắt bằng bất kỳ AI nào, gửi đến bất kỳ đâu.
+Plugin-based news aggregation engine. Fetch from any source, summarize with any AI, send to any channel.
 
-**Zero lock-in.** Swap sources, AI models, output channels bằng 1 dòng code.
+**Zero lock-in.** Swap sources, AI models, output channels with a single line of code.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                       NewsEngine                             │
-│                                                             │
-│  ┌─ Sources ──────┐   ┌─ AI ────────┐   ┌─ Outputs ─────┐ │
-│  │ RSS/Atom       │   │ Claude      │   │ Telegram      │ │
-│  │ HTML Scraper   │──▶│ OpenAI      │──▶│ Slack         │ │
-│  │ Hacker News    │   │ Groq        │   │ Discord       │ │
-│  │ Reddit         │   │ Gemini      │   │ Email         │ │
-│  │ Dev.to         │   │ Ollama      │   │ Webhook       │ │
-│  │ JSON API (any) │   │ OpenRouter  │   │ Markdown File │ │
-│  │ [Your Plugin]  │   │ Together    │   │ [Your Plugin] │ │
-│  └────────────────┘   │ [Your own]  │   └───────────────┘ │
-│                       └─────────────┘                       │
-│         ┌─ Cache ─────────┐   ┌─ Middleware ──────┐        │
-│         │ Memory          │   │ Filter by keyword │        │
-│         │ File (JSON)     │   │ Deduplicate       │        │
-│         │ Redis           │   │ Score / rank      │        │
-│         │ Cloudflare KV   │   │ [Your transform]  │        │
-│         └─────────────────┘   └───────────────────┘        │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                          NewsEngine                               │
+│                                                                  │
+│  ┌─ Sources ──────┐   ┌─ AI ────────┐   ┌─ Outputs ──────────┐ │
+│  │ RSS/Atom       │   │ Claude      │   │ Telegram           │ │
+│  │ HTML Scraper   │──▶│ OpenAI      │──▶│ X (Twitter)        │ │
+│  │ Hacker News    │   │ Groq        │   │ Facebook           │ │
+│  │ Reddit         │   │ Gemini      │   │ Threads            │ │
+│  │ Dev.to         │   │ Ollama      │   │ Slack / Discord    │ │
+│  │ GitHub Trending│   │ OpenRouter  │   │ Email / Webhook    │ │
+│  │ JSON API (any) │   │ Together    │   │ Markdown File      │ │
+│  │ [Your Plugin]  │   │ Qwen/DeepSk│   │ [Your Plugin]      │ │
+│  └────────────────┘   │ [Your own]  │   └────────────────────┘ │
+│                       └─────────────┘                            │
+│  ┌─ Cache ─────────┐  ┌─ Middleware ──────┐  ┌─ Channels ────┐ │
+│  │ Memory          │  │ Filter by keyword │  │ Multi-channel │ │
+│  │ File (JSON)     │  │ Semantic dedup    │  │ Per-channel   │ │
+│  │ Redis           │  │ Score & rank      │  │   schedule    │ │
+│  │ Cloudflare KV   │  │ [Your transform]  │  │ Drip / Digest │ │
+│  └─────────────────┘  └───────────────────┘  └───────────────┘ │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ## Quick Start
@@ -82,8 +83,12 @@ await engine.run();
 src/
 ├── core/                        # Engine core — platform agnostic
 │   ├── contracts.js             # 4 plugin interfaces: Source, AI, Output, Cache
-│   ├── engine.js                # Orchestrator (fluent builder API)
+│   ├── engine.js                # Orchestrator (fluent builder, drip mode)
 │   ├── caches.js                # Memory, File, Cloudflare KV, Redis
+│   ├── prefixed-cache.js        # Namespaced cache wrapper per channel
+│   ├── scoring.js               # Engagement + recency + credibility scoring
+│   ├── semantic-dedup.js        # Bigram title similarity dedup
+│   ├── grouping.js              # Category grouping for structured prompts
 │   └── index.js                 # Barrel exports
 │
 ├── sources/                     # Data source plugins
@@ -92,18 +97,40 @@ src/
 │   ├── hackernews.js            # Hacker News (Algolia API)
 │   ├── reddit.js                # Reddit (public JSON API)
 │   ├── devto.js                 # Dev.to API + generic JSONAPISource
+│   ├── github-trending.js       # GitHub Search API (popular repos)
+│   ├── og-image.js              # og:image enrichment utility
 │   └── index.js
 │
 ├── ai/                          # AI summarization plugins
 │   ├── claude.js                # Anthropic Claude (native API)
 │   ├── openai-compat.js         # OpenAI-compatible: GPT, Groq, Gemini, Ollama, etc.
-│   ├── _prompts.js              # Shared prompt templates (digest/bullet/thread/newsletter)
+│   ├── create-ai.js             # Shared factory: provider string → AIPlugin
+│   ├── platform-rules.js        # Platform-specific formatting rules
+│   ├── _prompts.js              # Shared prompt templates (6 styles)
 │   └── index.js
 │
 ├── outputs/                     # Output channel plugins
 │   ├── telegram.js              # Telegram Bot API (auto-split, markdown fallback)
+│   ├── x.js                     # X/Twitter (OAuth 2.0, threaded tweets)
+│   ├── facebook.js              # Facebook Page (Graph API)
+│   ├── threads.js               # Threads (Meta, two-step publish)
 │   ├── channels.js              # Slack, Discord, Email, Webhook, Markdown file
 │   └── index.js
+│
+├── channels/                    # Multi-channel orchestration
+│   ├── definitions.js           # Channel definitions from env vars
+│   ├── runner.js                # Schedule matching + sequential execution
+│   └── index.js
+│
+├── utils/                       # Shared utilities
+│   └── token-store.js           # Encrypted KV token storage (OAuth tokens)
+│
+├── dashboard/                   # Web dashboard (Express)
+│   ├── server.js                # HTTP server + SSE + API routes
+│   ├── config-loader.js         # streams.config.json loader
+│   ├── scheduler.js             # Cron job manager
+│   ├── stream-runner.js         # Stream execution engine
+│   └── public/                  # Frontend SPA
 │
 ├── presets/                     # Pre-configured source bundles
 │   └── index.js                 # bigTechBlogs(), communitySources(), aiMLBlogs(), etc.
@@ -126,26 +153,26 @@ Every plugin extends one of 4 base classes from `src/core/contracts.js`:
 
 | Contract | Methods | Purpose |
 |----------|---------|---------|
-| `SourcePlugin` | `.fetch(options)` → `Article[]` | Lấy articles từ bất kỳ nguồn nào |
-| `AIPlugin` | `.summarize(articles, options)` → `SummaryResult` | Xử lý / tóm tắt bằng bất kỳ model nào |
-| `OutputPlugin` | `.send(content, options)` → `SendResult` | Gửi kết quả đến bất kỳ đâu |
+| `SourcePlugin` | `.fetch(options)` → `Article[]` | Fetch articles from any source |
+| `AIPlugin` | `.summarize(articles, options)` → `SummaryResult` | Summarize with any AI model |
+| `OutputPlugin` | `.send(content, options)` → `SendResult` | Send results to any channel |
 | `CachePlugin` | `.get()` `.set()` `.has()` `.delete()` | Dedup & state management |
 
 ### Article Schema
 
-Mọi source plugin trả về articles theo schema thống nhất:
+All source plugins return articles in this unified schema:
 
 ```javascript
 {
-  id: string,            // Unique ID (thường là URL)
-  title: string,         // Tiêu đề
-  url: string,           // Link gốc
-  content: string,       // Nội dung / mô tả (plain text)
-  source: string,        // Tên nguồn
-  category?: string,     // Phân loại
-  author?: string,       // Tác giả
-  publishedAt?: Date,    // Ngày xuất bản
-  meta?: object,         // Metadata tuỳ ý (points, comments, icon, etc.)
+  id: string,            // Unique ID (usually the URL)
+  title: string,         // Article title
+  url: string,           // Original link
+  content: string,       // Content / description (plain text)
+  source: string,        // Source name
+  category?: string,     // Category
+  author?: string,       // Author
+  publishedAt?: Date,    // Publication date
+  meta?: object,         // Arbitrary metadata (points, comments, icon, etc.)
 }
 ```
 
@@ -155,30 +182,39 @@ Mọi source plugin trả về articles theo schema thống nhất:
 
 | Plugin | Auth | Description |
 |--------|------|-------------|
-| `RSSSource` | ❌ | RSS/Atom feed — dùng cho hầu hết blog |
-| `HTMLScraperSource` | ❌ | HTML scraper — cho blog không có RSS |
+| `RSSSource` | ❌ | RSS/Atom feed — works for most blogs |
+| `HTMLScraperSource` | ❌ | HTML scraper — for blogs without RSS |
 | `HackerNewsSource` | ❌ | HN Algolia API — filter by points, query |
 | `RedditSource` | ❌ | Reddit JSON API — filter by subreddit, upvotes |
 | `DevToSource` | ❌ | Dev.to API — filter by tag, reactions |
+| `GitHubTrendingSource` | ❌ | GitHub Search API — trending repos by stars/language |
 | `JSONAPISource` | ⚙️ | Generic JSON API — custom transform function |
 
 ### AI Providers
 
-| Plugin | Factory helper | Description |
-|--------|---------------|-------------|
-| `ClaudeAI` | — | Anthropic Claude (native API) |
-| `OpenAICompatibleAI` | `openai()` | OpenAI GPT models |
-| | `groq()` | Groq (ultra-fast inference) |
-| | `gemini()` | Google Gemini |
-| | `ollama()` | Ollama (local, offline) |
-| | `openRouter()` | OpenRouter (model marketplace) |
-| | `togetherAI()` | Together AI |
+| Plugin | Factory / Config | Description |
+|--------|-----------------|-------------|
+| `ClaudeAI` | `provider: 'claude'` | Anthropic Claude (native API) |
+| `OpenAICompatibleAI` | `provider: 'openai'` | OpenAI GPT models |
+| | `provider: 'groq'` | Groq (ultra-fast inference) |
+| | `provider: 'gemini'` | Google Gemini |
+| | `provider: 'qwen'` | Alibaba Qwen (DashScope) |
+| | `provider: 'deepseek'` | DeepSeek |
+| | `provider: 'ollama'` | Ollama (local, offline) |
+| | `provider: 'openrouter'` | OpenRouter (model marketplace) |
+| | `provider: 'together'` | Together AI |
+| | `provider: 'custom'` | Any OpenAI-compatible endpoint |
+
+Use `createAI({ provider, apiKey, model })` factory or set `AI_PROVIDER` env var.
 
 ### Outputs
 
 | Plugin | Description |
 |--------|-------------|
 | `TelegramOutput` | Telegram Bot API (auto-split >4096 chars, markdown fallback) |
+| `XOutput` | X/Twitter (OAuth 2.0, threaded tweets, auto-split >280 chars) |
+| `FacebookOutput` | Facebook Page (Graph API, link preview support) |
+| `ThreadsOutput` | Threads by Meta (two-step publish, 500 char limit) |
 | `SlackOutput` | Slack Incoming Webhook |
 | `DiscordOutput` | Discord Webhook (auto-split >2000 chars) |
 | `EmailOutput` | Email via Resend or SendGrid |
@@ -216,14 +252,17 @@ import { TelegramOutput } from './src/outputs/index.js';
 
 const engine = new NewsEngine()
   .addSource(...bigTechBlogs())
-  .useAI(new ClaudeAI({ apiKey: 'sk-ant-...' }))
-  .addOutput(new TelegramOutput({ botToken: '...', chatId: '-100...' }))
+  .useAI(new ClaudeAI({ apiKey: process.env.ANTHROPIC_API_KEY }))
+  .addOutput(new TelegramOutput({
+    botToken: process.env.TELEGRAM_BOT_TOKEN,
+    chatId: process.env.TELEGRAM_CHAT_ID,
+  }))
   .useCache(new FileCache());
 
 await engine.run();
 ```
 
-### Multi-output — gửi song song Telegram + Slack + Discord
+### Multi-output — send to Telegram + Slack + Discord in parallel
 
 ```javascript
 engine
@@ -232,7 +271,7 @@ engine
   .addOutput(new DiscordOutput({ webhookUrl: 'https://discord.com/api/webhooks/...' }));
 ```
 
-### Swap AI — thay Claude bằng Groq (free, ultra-fast)
+### Swap AI — replace Claude with Groq (free, ultra-fast)
 
 ```javascript
 import { groq } from './src/ai/index.js';
@@ -240,7 +279,7 @@ import { groq } from './src/ai/index.js';
 engine.useAI(groq('gsk_...'));
 ```
 
-### Swap AI — chạy offline với Ollama
+### Swap AI — run offline with Ollama
 
 ```javascript
 import { ollama } from './src/ai/index.js';
@@ -269,7 +308,7 @@ engine
 
 ```javascript
 engine
-  // Chỉ giữ bài có keyword liên quan
+  // Keep only articles matching relevant keywords
   .use(articles => articles.filter(a =>
     /kubernetes|docker|terraform/i.test(a.title + a.content)
   ))
@@ -279,18 +318,56 @@ engine
   ).slice(0, 20));
 ```
 
-### Newsletter style thay vì digest
+### Newsletter style instead of digest
 
 ```javascript
 engine.configure({ language: 'vi', style: 'newsletter' });
-// Styles: 'digest' | 'bullet' | 'thread' | 'newsletter'
+// Styles: 'digest' | 'bullet' | 'thread' | 'newsletter' | 'weekly' | 'mustread'
 ```
 
-### Dry run — preview không gửi
+### Multi-channel — broadcast to multiple platforms
+
+Use the `channels/` system to run multiple engine instances, each with its own schedule, prompt style, and output:
+
+```javascript
+import { defineChannels } from './src/channels/index.js';
+import { runChannels } from './src/channels/runner.js';
+
+const channels = defineChannels(process.env);
+await runChannels(channels, { cache, force: true });
+// Each channel has: id, schedule, mode (drip/digest), platform-specific prompt
+```
+
+Channels auto-activate when their required env vars are set. See `.env.example` for details.
+
+### Config-driven streams (JSON)
+
+Instead of code, define streams in `streams.config.json`:
+
+```json
+{
+  "streams": [{
+    "id": "morning-tech-digest",
+    "cron": "0 7 * * *",
+    "sources": [{ "type": "preset", "preset": "bigTechBlogs" }],
+    "ai": { "provider": "claude", "apiKey": "$ANTHROPIC_API_KEY", "style": "digest" },
+    "outputs": [{ "type": "telegram", "config": { "botToken": "$TELEGRAM_BOT_TOKEN" } }]
+  }]
+}
+```
+
+Run the dashboard to manage streams:
+
+```bash
+npm run dashboard
+# http://localhost:3000 — monitor, manual trigger, SSE live updates
+```
+
+### Dry run — preview without sending
 
 ```javascript
 const result = await engine.run({ dryRun: true });
-console.log(result.content); // Xem digest content
+console.log(result.content); // View digest content
 console.log(result.stats);   // { sources: 15, articles: 23, ... }
 ```
 
@@ -421,11 +498,21 @@ export const handler = async () => engine.run();
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `TELEGRAM_BOT_TOKEN` | Per output | Telegram bot token |
-| `TELEGRAM_CHAT_ID` | Per output | Telegram chat/channel ID |
+| `AI_PROVIDER` | ❌ | `claude`/`openai`/`groq`/`gemini`/`qwen`/`deepseek`/`ollama`/`openrouter`/`together`/`custom`/`none` |
+| `AI_MODEL` | ❌ | Override default model for chosen provider |
 | `ANTHROPIC_API_KEY` | Per AI | Claude API key |
 | `OPENAI_API_KEY` | Per AI | OpenAI API key |
 | `GROQ_API_KEY` | Per AI | Groq API key |
+| `GEMINI_API_KEY` | Per AI | Google Gemini API key |
+| `QWEN_API_KEY` | Per AI | Alibaba DashScope API key |
+| `DEEPSEEK_API_KEY` | Per AI | DeepSeek API key |
+| `TELEGRAM_BOT_TOKEN` | Per output | Telegram bot token |
+| `TELEGRAM_CHAT_ID` | Per output | Telegram chat/channel ID |
+| `X_CLIENT_ID` | Per output | X/Twitter OAuth 2.0 client ID |
+| `FB_PAGE_TOKEN` | Per output | Facebook Page access token |
+| `FB_PAGE_ID` | Per output | Facebook Page ID |
+| `THREADS_USER_ID` | Per output | Threads user ID |
+| `TOKEN_ENCRYPTION_KEY` | Per output | Encryption key for OAuth tokens in KV |
 | `CACHE_TYPE` | ❌ | `file` / `redis` / `memory` (default: `file`) |
 | `CACHE_PATH` | ❌ | File cache path (default: `.cache/news.json`) |
 | `REDIS_URL` | ❌ | Redis connection URL |
@@ -433,6 +520,9 @@ export const handler = async () => engine.run();
 | `SUMMARY_LANGUAGE` | ❌ | `vi` / `en` (default: `vi`) |
 | `MAX_ARTICLES_PER_SOURCE` | ❌ | Default: `3` |
 | `CONCURRENCY_LIMIT` | ❌ | Parallel fetch limit (default: `5`) |
+| `DRIP_BATCH_SIZE` | ❌ | Articles per drip run (default: `5`) |
+| `DRIP_DELAY_MS` | ❌ | Delay between drip articles in ms |
+| `TRIGGER_SECRET` | ❌ | Auth secret for Cloudflare manual trigger |
 
 ### Engine Options
 
@@ -441,7 +531,9 @@ engine.configure({
   concurrency: 5,              // Parallel source fetch
   maxArticlesPerSource: 5,     // Max articles per source
   language: 'vi',              // Summary language
-  style: 'digest',             // digest | bullet | thread | newsletter
+  style: 'digest',             // digest | bullet | thread | newsletter | weekly | mustread
+  audience: 'senior developers', // Target audience context for AI
+  platform: 'telegram',       // Platform-specific formatting rules
   since: new Date('2025-01-01'), // Only articles after this date
 });
 ```
@@ -456,6 +548,20 @@ engine.configure({
 | Cloudflare Worker | Free tier (100k req/day) |
 | Telegram Bot API | Free |
 
+## Dependencies
+
+### Required
+- `node-cron` — cron scheduling for Node.js adapter daemon mode
+- `express` — dashboard web server
+
+### Optional
+- `dotenv` — .env file loading
+- `redis` — only if using RedisCache
+- `wrangler` — only for Cloudflare Workers deployment
+
+### Zero deps for core
+The core engine, all source parsers, AI clients, and output senders use only `fetch()` (native in Node 18+, CF Workers, Bun, Deno).
+
 ## License
 
-MIT
+[MIT](LICENSE)
