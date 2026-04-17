@@ -3,13 +3,30 @@ main = "src/adapters/cloudflare.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Channel runner: every 30min + hourly token refresh for X/Threads
+# Crons: channel runner (*/30), token refresh (hourly), cleanup (daily 3am)
 [triggers]
-crons = ["*/30 * * * *", "0 * * * *"]
+crons = ["*/30 * * * *", "0 * * * *", "0 3 * * *"]
 
 [[kv_namespaces]]
 binding = "NEWS_CACHE"
 id = "8d9fb458825a46b68c7efcca93133b51"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "newsengine-db"
+database_id = "placeholder-create-via-wrangler-d1-create"
+migrations_dir = "migrations"
+
+[[queues.producers]]
+binding = "STREAM_QUEUE"
+queue = "newsengine-stream-jobs"
+
+[[queues.consumers]]
+queue = "newsengine-stream-jobs"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 3
+dead_letter_queue = "newsengine-stream-jobs-dlq"
 
 [vars]
 AI_PROVIDER = "openai"
@@ -22,3 +39,4 @@ MAX_ARTICLES = "18"
 CONCURRENCY_LIMIT = "5"
 SUMMARY_LANGUAGE = "vi"
 CRON_SCHEDULE = "0 0-17 * * *"
+APP_URL = "https://api.newsengine.app"

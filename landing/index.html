@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NewsEngine — AI News Curator on Autopilot</title>
+  <meta name="description" content="Fetch articles from any source, summarize with AI, deliver to your channels automatically. Free to start.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📡</text></svg>">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a2e;line-height:1.6;background:#fff}
+    .container{max-width:960px;margin:0 auto;padding:0 20px}
+    a{color:#4361ee;text-decoration:none}
+
+    /* Hero */
+    .hero{text-align:center;padding:80px 20px 60px}
+    .hero h1{font-size:clamp(2rem,5vw,3.2rem);margin-bottom:16px;letter-spacing:-0.5px}
+    .hero p{font-size:1.15rem;color:#555;max-width:560px;margin:0 auto 32px}
+    .btn{display:inline-block;padding:14px 32px;border-radius:8px;font-weight:600;font-size:1rem;transition:transform .15s}
+    .btn:hover{transform:translateY(-1px)}
+    .btn-primary{background:#4361ee;color:#fff}
+    .btn-ghost{border:2px solid #4361ee;color:#4361ee;margin-left:12px}
+
+    /* How it works */
+    .how{padding:60px 20px;background:#f8f9fc}
+    .how h2{text-align:center;margin-bottom:40px;font-size:1.8rem}
+    .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px}
+    .step{text-align:center;padding:24px}
+    .step-icon{font-size:2.5rem;margin-bottom:12px}
+    .step h3{margin-bottom:8px}
+    .step p{font-size:.9rem;color:#666}
+
+    /* Features */
+    .features{padding:60px 20px}
+    .features h2{text-align:center;margin-bottom:40px;font-size:1.8rem}
+    .feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+    .feat{padding:20px;border:1px solid #e8e8e8;border-radius:10px}
+    .feat h4{margin-bottom:6px}
+    .feat p{font-size:.88rem;color:#666}
+
+    /* Pricing */
+    .pricing{padding:60px 20px;background:#f8f9fc}
+    .pricing h2{text-align:center;margin-bottom:40px;font-size:1.8rem}
+    .price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;max-width:800px;margin:0 auto}
+    .price-card{background:#fff;border:1px solid #e8e8e8;border-radius:10px;padding:28px;text-align:center}
+    .price-card.popular{border-color:#4361ee;box-shadow:0 4px 20px rgba(67,97,238,.15)}
+    .price-card h3{margin-bottom:4px}
+    .price-card .amount{font-size:2rem;font-weight:700;margin:8px 0}
+    .price-card ul{list-style:none;text-align:left;font-size:.88rem;color:#555;margin:16px 0}
+    .price-card li{padding:4px 0}
+    .price-card li::before{content:'✓ ';color:#4361ee;font-weight:700}
+
+    /* Footer */
+    footer{padding:40px 20px;text-align:center;font-size:.85rem;color:#888;border-top:1px solid #eee}
+  </style>
+</head>
+<body>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1>AI news curator that posts<br>to your channels on autopilot</h1>
+    <p>Fetch from any source. Summarize with any AI. Deliver to Telegram, Discord, Slack, and more. Set it up in 2 minutes.</p>
+    <a href="/app#/signup" class="btn btn-primary">Get Started Free</a>
+    <a href="#pricing" class="btn btn-ghost">See Pricing</a>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="how">
+  <div class="container">
+    <h2>How It Works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-icon">📰</div>
+        <h3>1. Pick Sources</h3>
+        <p>RSS feeds, Hacker News, Reddit, Dev.to, GitHub Trending — or any JSON API.</p>
+      </div>
+      <div class="step">
+        <div class="step-icon">🤖</div>
+        <h3>2. Choose AI</h3>
+        <p>Groq (free), OpenAI, Claude, Gemini — summarize in any language and style.</p>
+      </div>
+      <div class="step">
+        <div class="step-icon">📡</div>
+        <h3>3. Set Output</h3>
+        <p>Telegram, Discord, Slack, email, webhooks. Runs on your schedule, automatically.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features">
+  <div class="container">
+    <h2>Built for Developers & Creators</h2>
+    <div class="feat-grid">
+      <div class="feat">
+        <h4>Zero Dependencies</h4>
+        <p>Runs on Cloudflare Workers edge. No servers, no Docker, no maintenance.</p>
+      </div>
+      <div class="feat">
+        <h4>Multi-Language</h4>
+        <p>Summaries in English, Vietnamese, or any language your AI supports.</p>
+      </div>
+      <div class="feat">
+        <h4>Smart Dedup</h4>
+        <p>Semantic deduplication across sources. No duplicate articles, ever.</p>
+      </div>
+      <div class="feat">
+        <h4>Content Scoring</h4>
+        <p>Articles ranked by engagement, recency, and source credibility.</p>
+      </div>
+      <div class="feat">
+        <h4>Multiple Styles</h4>
+        <p>Digest, bullet points, newsletter, thread — match your audience.</p>
+      </div>
+      <div class="feat">
+        <h4>Run History</h4>
+        <p>Track every execution. See articles fetched, errors, and delivery status.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <h2>Simple Pricing</h2>
+    <div class="price-grid">
+      <div class="price-card">
+        <h3>Free</h3>
+        <div class="amount">$0</div>
+        <ul>
+          <li>1 stream</li>
+          <li>2 sources per stream</li>
+          <li>Telegram output</li>
+          <li>Groq AI (free tier)</li>
+          <li>Daily schedule</li>
+        </ul>
+        <a href="/app#/signup" class="btn btn-primary" style="width:100%;display:block;text-align:center">Start Free</a>
+      </div>
+      <div class="price-card popular">
+        <h3>Pro</h3>
+        <div class="amount">$15<small style="font-size:.5em;color:#888">/mo</small></div>
+        <ul>
+          <li>5 streams</li>
+          <li>10 sources per stream</li>
+          <li>All output channels</li>
+          <li>GPT-4o, Claude, Gemini</li>
+          <li>Custom schedules</li>
+        </ul>
+        <a href="/app#/signup" class="btn btn-primary" style="width:100%;display:block;text-align:center">Get Pro</a>
+      </div>
+      <div class="price-card">
+        <h3>Business</h3>
+        <div class="amount">$39<small style="font-size:.5em;color:#888">/mo</small></div>
+        <ul>
+          <li>Unlimited streams</li>
+          <li>Unlimited sources</li>
+          <li>All output channels</li>
+          <li>All AI providers</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="/app#/signup" class="btn btn-primary" style="width:100%;display:block;text-align:center">Get Business</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>NewsEngine &copy; 2026. Built on Cloudflare Workers.</p>
+  </div>
+</footer>
+
+</body>
+</html>

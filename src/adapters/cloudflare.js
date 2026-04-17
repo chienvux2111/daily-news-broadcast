@@ -2,92 +2,60 @@
  * Adapter: Cloudflare Worker
  * Deploy: wrangler deploy
  *
- * Uses channel runner — each channel is an independent engine instance
+ * Hono-based API + channel runner cron + queue consumer
  */
 
+import { createApp } from '../api/app.js';
 import { CloudflareKVCache } from '../core/index.js';
-import { buildEngine, defineChannels, runChannels } from '../channels/index.js';
+import { defineChannels, runChannels } from '../channels/index.js';
 import { KVTokenStore } from '../utils/token-store.js';
 import { XOutput } from '../outputs/x.js';
 import { ThreadsOutput } from '../outputs/threads.js';
+import { enqueueDueStreams } from '../api/services/queue-producer.js';
+import { processStreamBatch } from '../api/services/queue-consumer.js';
+import { cleanupRunHistory } from '../api/services/cleanup-service.js';
 
-/** Find channel by id or return first */
-function findChannel(channels, id) {
-  if (id) return channels.find(c => c.id === id) || null;
-  return channels[0] || null;
-}
+const app = createApp();
 
 export default {
   async scheduled(event, env, ctx) {
     const cron = event.cron;
 
-    // Hourly token refresh cron — check all platform tokens
+    // Hourly token refresh cron
     if (cron === '0 * * * *') {
       ctx.waitUntil(refreshTokens(env));
       return;
     }
 
-    // Channel runner cron (*/30)
-    const channels = defineChannels(env);
-    const cache = new CloudflareKVCache(env.NEWS_CACHE);
-    const now = new Date(event.scheduledTime);
-    ctx.waitUntil(runChannels(channels, { cache, now }));
+    // Every 30 min — legacy channel runner + tenant stream fan-out
+    if (cron === '*/30 * * * *') {
+      // Legacy single-operator channels
+      const channels = defineChannels(env);
+      const cache = new CloudflareKVCache(env.NEWS_CACHE);
+      const now = new Date(event.scheduledTime);
+      ctx.waitUntil(runChannels(channels, { cache, now }));
+
+      // Tenant streams — enqueue due streams to CF Queue
+      if (env.STREAM_QUEUE && env.DB) {
+        ctx.waitUntil(enqueueDueStreams(env));
+      }
+      return;
+    }
+
+    // Daily cleanup cron (3 AM UTC) — delete old run history
+    if (cron === '0 3 * * *' && env.DB) {
+      ctx.waitUntil(cleanupRunHistory(env.DB));
+      return;
+    }
   },
 
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    const channels = defineChannels(env);
-    const cache = new CloudflareKVCache(env.NEWS_CACHE);
+    return app.fetch(request, env, ctx);
+  },
 
-    if (url.pathname === '/' || url.pathname === '/health') {
-      return json({
-        status: 'ok',
-        time: new Date().toISOString(),
-        channels: channels.map(c => ({ id: c.id, mode: c.mode, schedule: c.schedule })),
-      });
-    }
-
-    if (url.pathname === '/trigger' && request.method === 'POST') {
-      if (env.TRIGGER_SECRET && request.headers.get('Authorization') !== `Bearer ${env.TRIGGER_SECRET}`) {
-        return new Response('Unauthorized', { status: 401 });
-      }
-      const force = url.searchParams.get('force') === 'true';
-      const channelId = url.searchParams.get('channel');
-
-      if (channelId) {
-        const ch = findChannel(channels, channelId);
-        if (!ch) return json({ error: `Channel "${channelId}" not found` }, 404);
-        ctx.waitUntil(runChannels([ch], { cache, now: new Date(), force }));
-        return json({ message: 'Triggered', channel: channelId, force });
-      }
-
-      ctx.waitUntil(runChannels(channels, { cache, now: new Date(), force }));
-      return json({ message: 'Triggered all', force, channels: channels.map(c => c.id) });
-    }
-
-    if (url.pathname === '/queue') {
-      if (env.TRIGGER_SECRET && request.headers.get('Authorization') !== `Bearer ${env.TRIGGER_SECRET}`) {
-        return new Response('Unauthorized', { status: 401 });
-      }
-      const channelId = url.searchParams.get('channel');
-      const ch = findChannel(channels, channelId);
-      if (!ch) return json({ error: 'No channel found' }, 404);
-      const queue = await buildEngine(ch, cache).getQueue();
-      return json(queue);
-    }
-
-    if (url.pathname === '/preview') {
-      if (env.TRIGGER_SECRET && request.headers.get('Authorization') !== `Bearer ${env.TRIGGER_SECRET}`) {
-        return new Response('Unauthorized', { status: 401 });
-      }
-      const channelId = url.searchParams.get('channel');
-      const ch = findChannel(channels, channelId);
-      if (!ch) return json({ error: 'No channel found' }, 404);
-      const result = await buildEngine(ch, cache).generate();
-      return json(result);
-    }
-
-    return new Response('Not found', { status: 404 });
+  /** Queue consumer — processes tenant stream execution messages */
+  async queue(batch, env) {
+    await processStreamBatch(batch, env);
   },
 };
 
@@ -100,12 +68,10 @@ async function refreshTokens(env) {
   const kvStore = new KVTokenStore(env.NEWS_CACHE, env.TOKEN_ENCRYPTION_KEY);
 
   // X OAuth 2.0 — only refresh if current access token is missing/expired
-  // Uses a lock key to prevent concurrent refresh (cron overlap safety)
   if (env.X_CLIENT_ID) {
     try {
       const currentToken = await kvStore.getToken('x-tech-vn');
       if (!currentToken) {
-        // Token missing or expired — check for lock to prevent concurrent refresh
         const lock = await env.NEWS_CACHE.get('refresh-lock:x-tech-vn');
         if (!lock) {
           await env.NEWS_CACHE.put('refresh-lock:x-tech-vn', '1', { expirationTtl: 120 });
@@ -128,11 +94,4 @@ async function refreshTokens(env) {
       console.log(`[Refresh] Threads token refresh failed: ${err.message}`);
     }
   }
-}
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data, null, 2), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
 }
