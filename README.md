@@ -235,8 +235,10 @@ Use `createAI({ provider, apiKey, model })` factory or set `AI_PROVIDER` env var
 | Preset | Sources | Description |
 |--------|---------|-------------|
 | `bigTechBlogs()` | 15 sources | Uber, Meta, Netflix, AWS, Cloudflare, etc. |
-| `communitySources()` | 4 sources | HN, r/programming, r/ExperiencedDevs, Dev.to |
+| `communitySources()` | 5 sources | HN, r/programming, r/ExperiencedDevs, Dev.to, GitHub Trending |
 | `aiMLBlogs()` | 5 sources | OpenAI, DeepMind, HuggingFace, r/ML, HN AI |
+| `aiNewsSources()` | 8 sources | TechCrunch AI, Verge AI, Ars Technica, VentureBeat, r/LocalLLaMA, r/singularity, r/artificial, HN AI |
+| `aiDeepDiveSources()` | 6 sources | Simon Willison, Lilian Weng, Latent Space, Ahead of AI, One Useful Thing, Import AI |
 | `devopsSources()` | 4 sources | Cloudflare, HashiCorp, r/devops, Dev.to |
 | `mobileSources()` | 4 sources | Android Developers, r/androiddev, r/iOS, Dev.to |
 
@@ -459,6 +461,48 @@ class ZaloOutput extends OutputPlugin {
     return { success: res.ok };
   }
 }
+```
+
+## Testing
+
+### Quick test — preview mode (no sending)
+
+```bash
+# Preview first channel (fetch + summarize, no send)
+node src/adapters/node.js preview
+
+# Preview specific channel
+node src/adapters/node.js preview --channel telegram-main
+
+# Force skip dedup cache
+node src/adapters/node.js run --force
+```
+
+### Test individual presets
+
+```bash
+# Fetch articles from any preset
+node -e "
+import { aiNewsSources } from './src/presets/index.js';
+for (const src of aiNewsSources()) {
+  const articles = await src.fetch({ limit: 2 });
+  console.log(src.name, '—', articles.length, 'articles');
+}
+"
+```
+
+### Dashboard (config-driven streams)
+
+```bash
+npm run dashboard
+# http://localhost:3000 — monitor streams, manual trigger, live logs
+```
+
+### Cloudflare Workers dev
+
+```bash
+npx wrangler dev
+# curl http://localhost:8787/preview
 ```
 
 ## Deployment Options

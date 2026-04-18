@@ -1,6 +1,6 @@
 /**
  * Presets — Pre-configured source bundles
- * Mỗi preset trả về SourcePlugin[] — spread vào .addSource()
+ * Each preset returns SourcePlugin[] — spread into .addSource()
  */
 
 import { createRSSSources } from '../sources/rss.js';
@@ -61,6 +61,42 @@ export function aiMLBlogs() {
     new RedditSource({ subreddit: 'MachineLearning', minUpvotes: 150 }),
     new HackerNewsSource({ query: 'AI LLM', minPoints: 80 }),
   ];
+}
+
+// ============================================
+// AI News Sources — daily driver (8 sources)
+// Drama, launches, industry news
+// ============================================
+
+export function aiNewsSources() {
+  return [
+    ...createRSSSources([
+      { id: 'techcrunch-ai',  name: 'TechCrunch AI',     feedUrl: 'https://techcrunch.com/category/artificial-intelligence/feed/', icon: '💚', category: 'AI News' },
+      { id: 'verge-ai',       name: 'The Verge AI',      feedUrl: 'https://www.theverge.com/rss/ai-artificial-intelligence/index.xml', icon: '🔮', category: 'AI News' },
+      { id: 'ars-ai',         name: 'Ars Technica AI',   feedUrl: 'https://arstechnica.com/ai/feed/',           icon: '🔬', category: 'AI News' },
+      { id: 'venturebeat-ai', name: 'VentureBeat AI',    feedUrl: 'https://venturebeat.com/category/ai/feed/',  icon: '📈', category: 'AI News' },
+    ]),
+    new RedditSource({ subreddit: 'LocalLLaMA', minUpvotes: 200 }),
+    new RedditSource({ subreddit: 'singularity', minUpvotes: 300 }),
+    new RedditSource({ subreddit: 'artificial', minUpvotes: 200 }),
+    new HackerNewsSource({ query: 'AI LLM GPT OpenAI Anthropic', minPoints: 80 }),
+  ];
+}
+
+// ============================================
+// AI Deep-Dive Sources — weekly gems (6 sources)
+// Technical analysis, research, strategy
+// ============================================
+
+export function aiDeepDiveSources() {
+  return createRSSSources([
+    { id: 'simonwillison',  name: 'Simon Willison',     feedUrl: 'https://simonwillison.net/atom/everything/',          icon: '🧑‍💻', category: 'AI Deep-Dive' },
+    { id: 'lilianweng',     name: 'Lilian Weng',        feedUrl: 'https://lilianweng.github.io/index.xml',              icon: '📝', category: 'AI Deep-Dive' },
+    { id: 'latentspace',    name: 'Latent Space',       feedUrl: 'https://www.latent.space/feed',                       icon: '🎙️', category: 'AI Deep-Dive' },
+    { id: 'ahead-of-ai',   name: 'Ahead of AI',        feedUrl: 'https://magazine.sebastianraschka.com/feed',           icon: '🔭', category: 'AI Deep-Dive' },
+    { id: 'oneusefulthing', name: 'One Useful Thing',   feedUrl: 'https://www.oneusefulthing.org/feed',                 icon: '💡', category: 'AI Deep-Dive' },
+    { id: 'import-ai',     name: 'Import AI',           feedUrl: 'https://importai.substack.com/feed',                  icon: '📬', category: 'AI Deep-Dive' },
+  ]);
 }
 
 // ============================================

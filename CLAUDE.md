@@ -147,12 +147,6 @@ engine
 
 Category grouping is automatic in `buildPrompt()` when articles have mixed categories.
 
-### Adding a new preset
-
-1. Edit `src/presets/index.js`
-2. Create a function that returns `SourcePlugin[]`
-3. Use `createRSSSources()` for batch RSS creation
-
 ### Modifying the pipeline
 
 The engine pipeline in `engine.js` method `run()` is:
@@ -167,14 +161,36 @@ The engine pipeline in `engine.js` method `run()` is:
 7. _markSent() — cache articles
 ```
 
+### Adding a new preset
+
+1. Edit `src/presets/index.js` — add factory function returning `SourcePlugin[]`
+2. Register in `src/dashboard/stream-runner.js` → `PRESET_FACTORIES` map
+3. Export from `src/presets/index.js`
+4. Available presets: `bigTechBlogs`, `communitySources`, `aiMLBlogs`, `aiNewsSources`, `aiDeepDiveSources`, `devopsSources`, `mobileSources`
+
 ### Testing locally
 
 ```bash
-# Quick test — preview mode, no Telegram
+# Preview mode — fetch + summarize, no sending
 node src/adapters/node.js preview
 
-# With force flag (skip dedup cache)
+# Preview specific channel
+node src/adapters/node.js preview --channel telegram-main
+
+# Force skip dedup cache
 node src/adapters/node.js run --force
+
+# Test individual preset fetch
+node -e "
+import { aiNewsSources } from './src/presets/index.js';
+for (const src of aiNewsSources()) {
+  const a = await src.fetch({ limit: 2 });
+  console.log(src.name, '—', a.length, 'articles');
+}
+"
+
+# Dashboard (config-driven streams)
+npm run dashboard
 
 # Cloudflare dev mode
 npx wrangler dev

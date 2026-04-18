@@ -7,7 +7,7 @@ import { NewsEngine, MemoryCache } from '../core/index.js';
 import { RSSSource, HTMLScraperSource, HackerNewsSource, RedditSource, DevToSource, JSONAPISource } from '../sources/index.js';
 import { ClaudeAI, openai, groq, gemini, ollama, openRouter, togetherAI, qwen, deepseek, OpenAICompatibleAI } from '../ai/index.js';
 import { TelegramOutput, SlackOutput, DiscordOutput, EmailOutput, WebhookOutput, MarkdownFileOutput } from '../outputs/index.js';
-import { bigTechBlogs, communitySources, aiMLBlogs, devopsSources, mobileSources } from '../presets/index.js';
+import { bigTechBlogs, communitySources, aiMLBlogs, aiNewsSources, aiDeepDiveSources, devopsSources, mobileSources } from '../presets/index.js';
 
 // ============================================
 // Env var resolution — "$VAR_NAME" → process.env.VAR_NAME
@@ -47,6 +47,8 @@ const PRESET_FACTORIES = {
   bigTechBlogs,
   communitySources,
   aiMLBlogs,
+  aiNewsSources,
+  aiDeepDiveSources,
   devopsSources,
   mobileSources,
 };

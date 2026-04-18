@@ -31,13 +31,14 @@ A composable engine with:
 ## Key Features
 
 1. **7 source plugins** — RSS, HTML scraper, HN, Reddit, Dev.to, GitHub Trending, JSON API
-2. **10 AI providers** — Claude, OpenAI, Groq, Gemini, Qwen, DeepSeek, Ollama, OpenRouter, Together, Custom
-3. **9 output plugins** — Telegram, X, Facebook, Threads, Slack, Discord, Email, Webhook, Markdown
-4. **Content intelligence** — scoring, semantic dedup, category grouping
-5. **6 prompt styles** — digest, bullet, thread, newsletter, weekly, mustread
-6. **Platform-specific formatting** — auto-adapts content for each output platform
-7. **Web dashboard** — config-driven monitoring with SSE live updates
-8. **Bilingual support** — primary + secondary language digests
+2. **7 source presets** — bigTechBlogs, communitySources, aiMLBlogs, aiNewsSources, aiDeepDiveSources, devopsSources, mobileSources
+3. **10 AI providers** — Claude, OpenAI, Groq, Gemini, Qwen, DeepSeek, Ollama, OpenRouter, Together, Custom
+4. **9 output plugins** — Telegram, X, Facebook, Threads, Slack, Discord, Email, Webhook, Markdown
+5. **Content intelligence** — scoring, semantic dedup, category grouping
+6. **6 prompt styles** — digest, bullet, thread, newsletter, weekly, mustread
+7. **Platform-specific formatting** — auto-adapts content for each output platform
+8. **Web dashboard** — config-driven monitoring with SSE live updates
+9. **Bilingual support** — primary + secondary language digests
 
 ## Architecture Principles
 

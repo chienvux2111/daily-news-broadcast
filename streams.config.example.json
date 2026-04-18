@@ -69,6 +69,36 @@
       }
     },
     {
+      "id": "ai-pulse-daily",
+      "name": "AI Pulse Daily",
+      "enabled": false,
+      "cron": "0 8,14 * * *",
+      "timezone": "Asia/Ho_Chi_Minh",
+      "sources": [
+        { "type": "preset", "preset": "aiNewsSources" },
+        { "type": "preset", "preset": "aiDeepDiveSources" }
+      ],
+      "ai": {
+        "provider": "claude",
+        "apiKey": "$ANTHROPIC_API_KEY",
+        "language": "en",
+        "style": "bullet"
+      },
+      "outputs": [
+        {
+          "type": "telegram",
+          "config": {
+            "botToken": "$TELEGRAM_BOT_TOKEN",
+            "chatId": "$TELEGRAM_CHAT_ID"
+          }
+        }
+      ],
+      "options": {
+        "concurrency": 5,
+        "maxArticlesPerSource": 2
+      }
+    },
+    {
       "id": "devops-weekly",
       "name": "DevOps Weekly Roundup",
       "enabled": false,

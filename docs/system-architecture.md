@@ -154,6 +154,22 @@ streams.config.json
 - No secrets in source code or git history
 - Platform tokens use provider-recommended auth flows (System User tokens for Facebook, OAuth 2.0 for X/Threads)
 
+## Presets
+
+Pre-configured source bundles in `src/presets/index.js` simplify common use cases:
+
+| Preset | Sources | Use Case |
+|--------|---------|----------|
+| `bigTechBlogs()` | 15 RSS sources | Engineering blogs from Uber, Meta, Netflix, AWS, Cloudflare, GitHub, Google, Stripe, Airbnb, LinkedIn, Spotify, Dropbox, Shopify, Vercel, Mozilla |
+| `communitySources()` | 5 sources | Hacker News, Reddit (programming, ExperiencedDevs), Dev.to, GitHub Trending |
+| `aiMLBlogs()` | 5 sources | OpenAI, DeepMind, Hugging Face RSS + Reddit (MachineLearning), Hacker News (AI/LLM) |
+| `aiNewsSources()` | 8 sources | Daily AI industry news: TechCrunch, The Verge, Ars Technica, VentureBeat + Reddit (LocalLLaMA, singularity, artificial) + Hacker News AI query |
+| `aiDeepDiveSources()` | 6 sources | Weekly technical deep-dives: Simon Willison, Lilian Weng, Latent Space, Ahead of AI, One Useful Thing, Import AI |
+| `devopsSources()` | 4 sources | DevOps: Cloudflare, HashiCorp RSS + Reddit (devops), Dev.to (devops tag) |
+| `mobileSources()` | 4 sources | Mobile: Android Developers, Swift.org RSS + Reddit (androiddev, iOSProgramming) |
+
+Each preset returns a `SourcePlugin[]` array, spread into `.addSource()` when building an engine or stream.
+
 ## Data Flow Summary
 
 ```
