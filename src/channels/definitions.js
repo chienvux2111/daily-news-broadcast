@@ -3,7 +3,7 @@
  * All channel state derived from env at runtime
  */
 
-import { bigTechBlogs } from '../presets/index.js';
+import { bigTechBlogs, aiNewsSources, aiDeepDiveSources } from '../presets/index.js';
 import { createAI } from '../ai/create-ai.js';
 import { TelegramOutput, XOutput, FacebookOutput, ThreadsOutput } from '../outputs/index.js';
 import { KVTokenStore } from '../utils/token-store.js';
@@ -62,11 +62,11 @@ function makeAI(env) {
 export function defineChannels(env) {
   const channels = [];
 
-  // --- Telegram (existing, mirrors pre-refactor behavior) ---
+  // --- Telegram (tech blogs + AI news + AI deep-dives) ---
   if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
     channels.push({
       id: 'telegram-main',
-      sources: bigTechBlogs(),
+      sources: [...bigTechBlogs(), ...aiNewsSources(), ...aiDeepDiveSources()],
       ai: makeAI(env),
       output: new TelegramOutput({
         botToken: env.TELEGRAM_BOT_TOKEN,
