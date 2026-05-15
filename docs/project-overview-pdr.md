@@ -35,7 +35,7 @@ A composable engine with:
 3. **10 AI providers** — Claude, OpenAI, Groq, Gemini, Qwen, DeepSeek, Ollama, OpenRouter, Together, Custom
 4. **9 output plugins** — Telegram, X, Facebook, Threads, Slack, Discord, Email, Webhook, Markdown
 5. **Content intelligence** — scoring, semantic dedup, category grouping
-6. **6 prompt styles** — digest, bullet, thread, newsletter, weekly, mustread
+6. **7 prompt styles** — digest, hot_take, bullet, thread, newsletter, weekly, mustread
 7. **Platform-specific formatting** — auto-adapts content for each output platform
 8. **Web dashboard** — config-driven monitoring with SSE live updates
 9. **Bilingual support** — primary + secondary language digests

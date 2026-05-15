@@ -21,6 +21,8 @@ const PROVIDER_KEY_MAP = {
   custom: 'CUSTOM_AI_API_KEY',
 };
 
+const BUILDER_AUDIENCE = 'dev Viet va indie builders dang ship AI/SaaS products';
+
 /**
  * Helper: resolve env value (works for both CF env object and process.env)
  * @param {Object} env
@@ -74,8 +76,9 @@ export function defineChannels(env) {
       }),
       prompt: {
         language: e(env, 'SUMMARY_LANGUAGE', 'vi'),
-        style: 'digest',
-        audience: 'senior developers',
+        style: 'hot_take',
+        audience: BUILDER_AUDIENCE,
+        platform: 'telegram',
       },
       mode: e(env, 'BROADCAST_MODE', 'drip'),
       schedule: e(env, 'CRON_SCHEDULE', '0 1,7,13 * * *'),
@@ -96,7 +99,7 @@ export function defineChannels(env) {
       sources: bigTechBlogs(),
       ai: makeAI(env),
       output: new XOutput({ kvTokenStore: kvStore, channelId: 'x-tech-vn' }),
-      prompt: { language: 'vi', style: 'thread', audience: 'Vietnamese devs on X', platform: 'x' },
+      prompt: { language: 'vi', style: 'hot_take', audience: BUILDER_AUDIENCE, platform: 'x' },
       mode: 'drip',
       schedule: e(env, 'X_CRON_SCHEDULE', '0 0,6,12 * * *'),
       batchSize: eInt(env, 'X_BATCH_SIZE', 3),
@@ -115,9 +118,11 @@ export function defineChannels(env) {
       sources: bigTechBlogs(),
       ai: makeAI(env),
       output: new FacebookOutput({ pageToken: env.FB_PAGE_TOKEN, pageId: env.FB_PAGE_ID }),
-      prompt: { language: 'vi', style: 'digest', audience: 'AI enthusiasts on Facebook', platform: 'facebook' },
-      mode: 'digest',
-      schedule: e(env, 'FB_CRON_SCHEDULE', '0 1 * * *'),
+      prompt: { language: 'vi', style: 'hot_take', audience: BUILDER_AUDIENCE, platform: 'facebook' },
+      mode: 'drip',
+      schedule: e(env, 'FB_CRON_SCHEDULE', '0 1,7,13 * * *'),
+      batchSize: eInt(env, 'FB_BATCH_SIZE', 1),
+      delayMs: 0,
       maxArticles: 10,
       maxArticlesPerSource: 3,
       concurrency: 5,
@@ -133,7 +138,7 @@ export function defineChannels(env) {
       sources: bigTechBlogs(),
       ai: makeAI(env),
       output: new ThreadsOutput({ userId: env.THREADS_USER_ID, kvTokenStore: kvStore, channelId: 'threads-dev-vn' }),
-      prompt: { language: 'vi', style: 'bullet', audience: 'Junior devs on Threads', platform: 'threads' },
+      prompt: { language: 'vi', style: 'hot_take', audience: BUILDER_AUDIENCE, platform: 'threads' },
       mode: 'drip',
       schedule: e(env, 'THREADS_CRON_SCHEDULE', '0 2,8 * * *'),
       batchSize: 2,

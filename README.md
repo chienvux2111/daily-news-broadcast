@@ -106,7 +106,7 @@ src/
 │   ├── openai-compat.js         # OpenAI-compatible: GPT, Groq, Gemini, Ollama, etc.
 │   ├── create-ai.js             # Shared factory: provider string → AIPlugin
 │   ├── platform-rules.js        # Platform-specific formatting rules
-│   ├── _prompts.js              # Shared prompt templates (6 styles)
+│   ├── _prompts.js              # Shared prompt templates (7 styles)
 │   └── index.js
 │
 ├── outputs/                     # Output channel plugins
@@ -324,7 +324,7 @@ engine
 
 ```javascript
 engine.configure({ language: 'vi', style: 'newsletter' });
-// Styles: 'digest' | 'bullet' | 'thread' | 'newsletter' | 'weekly' | 'mustread'
+// Styles: 'digest' | 'hot_take' | 'bullet' | 'thread' | 'newsletter' | 'weekly' | 'mustread'
 ```
 
 ### Multi-channel — broadcast to multiple platforms
@@ -352,7 +352,13 @@ Instead of code, define streams in `streams.config.json`:
     "id": "morning-tech-digest",
     "cron": "0 7 * * *",
     "sources": [{ "type": "preset", "preset": "bigTechBlogs" }],
-    "ai": { "provider": "claude", "apiKey": "$ANTHROPIC_API_KEY", "style": "digest" },
+    "ai": {
+      "provider": "claude",
+      "apiKey": "$ANTHROPIC_API_KEY",
+      "style": "hot_take",
+      "audience": "dev Viet va indie builders dang ship AI/SaaS products",
+      "platform": "telegram"
+    },
     "outputs": [{ "type": "telegram", "config": { "botToken": "$TELEGRAM_BOT_TOKEN" } }]
   }]
 }
@@ -575,7 +581,7 @@ engine.configure({
   concurrency: 5,              // Parallel source fetch
   maxArticlesPerSource: 5,     // Max articles per source
   language: 'vi',              // Summary language
-  style: 'digest',             // digest | bullet | thread | newsletter | weekly | mustread
+  style: 'digest',             // digest | hot_take | bullet | thread | newsletter | weekly | mustread
   audience: 'senior developers', // Target audience context for AI
   platform: 'telegram',       // Platform-specific formatting rules
   since: new Date('2025-01-01'), // Only articles after this date

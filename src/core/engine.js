@@ -40,6 +40,7 @@ export class NewsEngine {
       secondaryLanguage: null, // set to 'en' for bilingual digest
       style: 'digest',
       audience: 'senior developers',
+      platform: 'telegram',
       since: new Date(Date.now() - 24 * 60 * 60 * 1000), // last 24h
     };
   }
@@ -160,6 +161,7 @@ export class NewsEngine {
         language: this.options.language,
         style: this.options.style,
         audience: this.options.audience,
+        platform: this.options.platform,
       };
       log(`[Engine] Summarizing with ${this.ai.name}...`);
       const result = await this.ai.summarize(articles, aiOpts);
@@ -294,11 +296,15 @@ export class NewsEngine {
       try {
         const hookPrompt = buildHookPrompt(article, {
           language: this.options.language,
+          style: this.options.style,
           audience: this.options.audience,
+          platform: this.options.platform,
         });
         const aiResult = await this.ai.summarize([article], {
           language: this.options.language,
+          style: this.options.style,
           audience: this.options.audience,
+          platform: this.options.platform,
           systemPrompt: hookPrompt.system,
           _rawUserPrompt: hookPrompt.user,
         });

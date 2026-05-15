@@ -79,7 +79,8 @@ export class AIPlugin {
    * @param {Article[]} articles   - Danh sách bài viết
    * @param {Object}    options
    * @param {string}    [options.language='vi']   - Ngôn ngữ output
-   * @param {string}    [options.style='digest']  - Style: digest | bullet | thread | newsletter
+   * @param {string}    [options.style='digest']  - Style: digest | hot_take | bullet | thread | newsletter | weekly | mustread
+   * @param {string}    [options.platform='telegram'] - Platform formatting rules
    * @param {string}    [options.systemPrompt]    - Custom system prompt (override default)
    * @param {number}    [options.maxTokens=4096]
    * @returns {Promise<SummaryResult>}

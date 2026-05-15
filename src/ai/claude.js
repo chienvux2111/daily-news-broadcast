@@ -25,8 +25,8 @@ export class ClaudeAI extends AIPlugin {
   get name() { return `Claude (${this._config.model})`; }
 
   async summarize(articles, options = {}) {
-    const { language = 'vi', style = 'digest', audience, systemPrompt, _rawUserPrompt, maxTokens = 4096 } = options;
-    const prompt = buildPrompt(articles, { language, style, audience });
+    const { language = 'vi', style = 'digest', audience, platform, systemPrompt, _rawUserPrompt, maxTokens = 4096 } = options;
+    const prompt = buildPrompt(articles, { language, style, audience, platform });
 
     const response = await fetch(`${this._config.baseUrl}/v1/messages`, {
       method: 'POST',

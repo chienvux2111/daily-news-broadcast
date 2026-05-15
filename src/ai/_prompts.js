@@ -51,6 +51,36 @@ FORMAT:
     en: () => `Summarize tech articles as concise bullet points. One line each with link.`,
   },
 
+  hot_take: {
+    vi: (audience) => `Bạn là tech news commentator cho ${audience}. Viết Vietnamese-first Vietlish: giải thích bằng tiếng Việt tự nhiên, giữ thuật ngữ tech tiếng Anh.
+
+TONE:
+- Sharp, skeptical, witty, hơi contrarian nhưng có căn cứ
+- Nói thẳng tradeoff cho dev/indie builder: cost, lock-in, distribution, DX, moat, speed to ship
+- Gây tranh luận bằng lập luận, KHÔNG rage bait, KHÔNG bịa claim, KHÔNG công kích cá nhân/nhóm
+
+FORMAT:
+- Bắt đầu: "🔥 HOT TAKE - [DD/MM/YYYY]"
+- Mỗi bài: 1 hot take ngắn → vì sao builders nên quan tâm → ai thắng/ai thua hoặc tradeoff chính → link
+- "💡 BUILDER TAKEAWAY" — 2-3 việc độc giả có thể làm/kiểm chứng
+- "🤔 DEBATE" — 1 câu hỏi dễ kéo comment
+- Hashtags cuối`,
+
+    en: (audience) => `You are a sharp tech commentator for ${audience}.
+
+TONE:
+- Opinionated, skeptical, witty, slightly contrarian, but defensible
+- Focus on builder tradeoffs: cost, lock-in, distribution, DX, moat, speed to ship
+- Be controversial through reasoning, not rage bait. Do not invent claims or attack people/groups.
+
+FORMAT:
+- Start: "🔥 HOT TAKE - [DD/MM/YYYY]"
+- Each article: short hot take → why builders should care → winner/loser or core tradeoff → link
+- "💡 BUILDER TAKEAWAY" — 2-3 practical actions/checks
+- "🤔 DEBATE" — 1 comment-worthy question
+- Hashtags at end`,
+  },
+
   thread: {
     vi: () => `Viết chuỗi bài đăng (thread) cho mạng xã hội từ danh sách tin kỹ thuật. Tiếng Việt, giữ thuật ngữ tiếng Anh. Đánh số 1/n, 2/n...`,
     en: () => `Write a social media thread from tech articles. Number as 1/n, 2/n...`,
@@ -100,15 +130,24 @@ Format: "⭐ MUST READ - [DD/MM/YYYY]"`,
  * @param {Article} article
  * @param {Object} options
  * @param {string} [options.platform='telegram']
+ * @param {string} [options.style='digest']
+ * @param {string} [options.audience='dev Việt']
  * @returns {{ system: string, user: string }}
  */
 export function buildHookPrompt(article, options = {}) {
-  const { platform = 'telegram' } = options;
+  const { platform = 'telegram', style = 'digest', audience = 'dev Việt' } = options;
   const meta = article.meta || {};
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const spicy = style === 'hot_take';
 
-  const openers = [
-    'Mở đầu bằng 1 hot take ngắn gọn',
+  const openers = spicy ? [
+    'Mở đầu bằng 1 hot take dễ gây tranh luận nhưng có căn cứ',
+    'Mở đầu bằng câu "Unpopular opinion:" rồi nói thẳng tradeoff',
+    'Mở đầu bằng câu hỏi đụng đúng nỗi đau của indie builders',
+    'Mở đầu bằng prediction ngắn về ai thắng/ai thua',
+    'Mở đầu bằng comparison với một hype cycle quen thuộc',
+  ] : [
+    'Mở đầu bằng 1 insight ngắn gọn',
     'Mở đầu bằng 1 câu hỏi rhetorical',
     'Mở đầu bằng reaction cá nhân kiểu "Vừa đọc cái này..."',
     'Mở đầu bằng comparison với cái gì đó quen thuộc',
@@ -119,10 +158,24 @@ export function buildHookPrompt(article, options = {}) {
   const opener = openers[Math.floor(Math.random() * openers.length)];
   const rules = HOOK_RULES[platform] || HOOK_RULES.telegram;
 
-  const system = `Viết 1 post tóm tắt bài tech news bên dưới. Viết như dev Việt share tin cho anh em — Vietnglish tự nhiên, không formal, không robot.
+  const editorialMode = spicy
+    ? `Viết 1 post hot take về bài tech news bên dưới cho ${audience}. Vietnamese-first Vietlish: giải thích bằng tiếng Việt tự nhiên, giữ thuật ngữ tech tiếng Anh.
 
-CẤU TRÚC 1 ĐOẠN TÓM TẮT:
-Chuyện gì đang xảy ra? Ai làm gì? Có gì đáng chú ý? Tóm lại ngắn gọn, dễ hiểu, giữ thuật ngữ tech tiếng Anh. (3-5 câu)
+GÓC NHÌN:
+- Sharp, skeptical, witty, hơi contrarian nhưng vẫn fair
+- Nói rõ impact với dev/indie builders: cost, lock-in, distribution, DX, moat, speed to ship
+- Gây tranh luận bằng tradeoff thật, KHÔNG rage bait, KHÔNG bịa claim, KHÔNG công kích cá nhân/nhóm`
+    : `Viết 1 post tóm tắt bài tech news bên dưới. Viết như dev Việt share tin cho anh em — Vietnglish tự nhiên, không formal, không robot. KHÔNG bình luận/đánh giá/opinion trừ khi prompt style yêu cầu.`;
+
+  const structure = spicy
+    ? `CẤU TRÚC 1 ĐOẠN:
+Hot take → chuyện gì xảy ra → why builders should care → tradeoff/thắng-thua → 1 câu hỏi debate. (3-5 câu)`
+    : `CẤU TRÚC 1 ĐOẠN TÓM TẮT:
+Chuyện gì đang xảy ra? Ai làm gì? Có gì đáng chú ý? Tóm lại ngắn gọn, dễ hiểu, giữ thuật ngữ tech tiếng Anh. (3-5 câu)`;
+
+  const system = `${editorialMode}
+
+${structure}
 
 ${rules.examples}
 

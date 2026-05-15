@@ -138,6 +138,8 @@ export function buildEngine(streamConfig) {
   engine.configure({
     language: streamConfig.ai?.language || opts.language || 'vi',
     style: streamConfig.ai?.style || opts.style || 'digest',
+    audience: streamConfig.ai?.audience || opts.audience || 'senior developers',
+    platform: streamConfig.ai?.platform || opts.platform || 'telegram',
     ...(opts.concurrency && { concurrency: opts.concurrency }),
     ...(opts.maxArticlesPerSource && { maxArticlesPerSource: opts.maxArticlesPerSource }),
   });

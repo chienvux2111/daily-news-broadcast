@@ -90,10 +90,10 @@ The channel system (`src/channels/`) allows running multiple independent engine 
 ```
 defineChannels(env)
   │
-  ├── telegram-main   (digest mode, 3x/day, vi, senior devs)
-  ├── x-tech-vn       (drip mode, 3x/day, thread style, vi)
-  ├── fb-ai-vn        (digest mode, 1x/day, vi, AI enthusiasts)
-  └── threads-dev-vn  (drip mode, 2x/day, bullet style, vi)
+  ├── telegram-main   (drip mode, 3x/day, vi, hot_take, dev/indie builders)
+  ├── x-tech-vn       (drip mode, 3x/day, vi, hot_take)
+  ├── fb-ai-vn        (drip mode, 3x/day, vi, hot_take)
+  └── threads-dev-vn  (drip mode, 2x/day, vi, hot_take)
 ```
 
 Each channel:
@@ -132,7 +132,7 @@ streams.config.json
 `ai/_prompts.js` exports `buildPrompt()` which generates `{system, user}` prompt pairs:
 
 - **Language**: `vi` / `en` with locale-specific editorial voice
-- **Style**: `digest` / `bullet` / `thread` / `newsletter` / `weekly` / `mustread`
+- **Style**: `digest` / `hot_take` / `bullet` / `thread` / `newsletter` / `weekly` / `mustread`
 - **Audience**: injected into system prompt for tone calibration
 - **Platform**: platform-specific formatting rules appended (from `platform-rules.js`)
 - **Grouping**: articles auto-grouped by category when mixed categories detected

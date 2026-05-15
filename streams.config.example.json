@@ -15,7 +15,9 @@
         "apiKey": "$ANTHROPIC_API_KEY",
         "model": "claude-sonnet-4-20250514",
         "language": "vi",
-        "style": "digest"
+        "style": "hot_take",
+        "audience": "dev Viet va indie builders dang ship AI/SaaS products",
+        "platform": "telegram"
       },
       "outputs": [
         {

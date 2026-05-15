@@ -44,7 +44,7 @@ export const HOOK_RULES = {
   telegram: {
     format: `QUY TẮC:
 - Vietnglish tự nhiên, xen tiếng Anh như dev Việt chat hàng ngày
-- CHỈ 1 đoạn tóm tắt, KHÔNG bình luận/đánh giá/opinion
+- CHỈ 1 đoạn, có thể có viewpoint nếu prompt style yêu cầu nhưng phải dựa trên article
 - Tổng khoảng 300-500 ký tự
 - Link gốc ở cuối, paste thẳng URL
 - Dòng cuối cùng luôn là "— Dan Tech Daily News"
