@@ -37,9 +37,9 @@ export class NewsEngine {
       maxArticlesPerSource: 5,
       maxRetries: 2,
       language: 'vi',
-      secondaryLanguage: null, // set to 'en' for bilingual digest
+      secondaryLanguage: null,
       style: 'digest',
-      audience: 'senior developers',
+      audience: 'IT professionals',
       platform: 'telegram',
       since: new Date(Date.now() - 24 * 60 * 60 * 1000), // last 24h
     };
@@ -96,7 +96,7 @@ export class NewsEngine {
   }
 
   configure(options) {
-    this.options = { ...this.options, ...options };
+    this.options = { ...this.options, ...options, language: 'vi', secondaryLanguage: null };
     return this;
   }
 
@@ -154,11 +154,10 @@ export class NewsEngine {
 
     // === Step 4: AI SUMMARIZE ===
     let content;
-    let secondaryContent = null;
     let aiUsage = null;
     if (this.ai) {
       const aiOpts = {
-        language: this.options.language,
+        language: 'vi',
         style: this.options.style,
         audience: this.options.audience,
         platform: this.options.platform,
@@ -167,20 +166,8 @@ export class NewsEngine {
       const result = await this.ai.summarize(articles, aiOpts);
       content = result.text;
       aiUsage = result.usage || null;
-
-      // Secondary language digest (bilingual support)
-      const secLang = this.options.secondaryLanguage;
-      if (secLang && secLang !== this.options.language) {
-        log(`[Engine] Generating secondary digest (${secLang})...`);
-        const secResult = await this.ai.summarize(articles, { ...aiOpts, language: secLang });
-        secondaryContent = secResult.text;
-        if (secResult.usage && aiUsage) {
-          aiUsage.input = (aiUsage.input || 0) + (secResult.usage.input || 0);
-          aiUsage.output = (aiUsage.output || 0) + (secResult.usage.output || 0);
-        }
-      }
     } else {
-      content = this._fallbackFormat(articles);
+      throw new Error('AI plugin is required to generate Vietnamese output with diacritics.');
     }
 
     // === Step 5: SEND TO OUTPUTS ===
@@ -213,7 +200,6 @@ export class NewsEngine {
     return {
       status: dryRun ? 'dry_run' : 'success',
       content,
-      ...(secondaryContent && { secondaryContent }),
       stats: this._stats(articles.length, durationMs),
       aiUsage,
       outputs: outputResults,
@@ -295,13 +281,13 @@ export class NewsEngine {
       const article = batch[i];
       try {
         const hookPrompt = buildHookPrompt(article, {
-          language: this.options.language,
+          language: 'vi',
           style: this.options.style,
           audience: this.options.audience,
           platform: this.options.platform,
         });
         const aiResult = await this.ai.summarize([article], {
-          language: this.options.language,
+          language: 'vi',
           style: this.options.style,
           audience: this.options.audience,
           platform: this.options.platform,
@@ -481,10 +467,6 @@ export class NewsEngine {
     const truncated = content.substring(0, output.maxLength - 50);
     const lastBreak = truncated.lastIndexOf('\n\n');
     return (lastBreak > content.length * 0.5 ? truncated.substring(0, lastBreak) : truncated) + '\n\n[...]';
-  }
-
-  _fallbackFormat(articles) {
-    return articles.map(a => `• ${a.title}\n  ${a.url}`).join('\n\n');
   }
 
   _stats(articleCount, durationMs) {

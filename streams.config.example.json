@@ -15,8 +15,8 @@
         "apiKey": "$ANTHROPIC_API_KEY",
         "model": "claude-sonnet-4-20250514",
         "language": "vi",
-        "style": "hot_take",
-        "audience": "dev Viet va indie builders dang ship AI/SaaS products",
+        "style": "digest",
+        "audience": "nguoi lam IT Viet Nam: developers, engineers, product, data, security, operations, technical leaders",
         "platform": "telegram"
       },
       "outputs": [
@@ -48,7 +48,7 @@
         "provider": "groq",
         "apiKey": "$GROQ_API_KEY",
         "model": "llama-3.3-70b-versatile",
-        "language": "en",
+        "language": "vi",
         "style": "bullet"
       },
       "outputs": [
@@ -83,7 +83,7 @@
       "ai": {
         "provider": "claude",
         "apiKey": "$ANTHROPIC_API_KEY",
-        "language": "en",
+        "language": "vi",
         "style": "bullet"
       },
       "outputs": [
@@ -114,7 +114,7 @@
         "provider": "openai",
         "apiKey": "$OPENAI_API_KEY",
         "model": "gpt-4o-mini",
-        "language": "en",
+        "language": "vi",
         "style": "newsletter"
       },
       "outputs": [

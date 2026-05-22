@@ -11,14 +11,15 @@ export const PLATFORM_RULES = {
   telegram: `FORMAT RULES:
 - Dùng Telegram formatting: *bold*, _italic_
 - KHÔNG dùng ## markdown headers
-- Tối đa 4000 ký tự`,
+- Tối đa 4000 ký tự
+- Giữ nhịp viết tự nhiên; đừng biến mỗi mục thành cùng một template`,
 
   x: `FORMAT RULES:
 - Plain text only — no markdown, no HTML, no *bold* or _italic_
 - Each tweet max 280 characters
 - Thread format: number as 1/n, 2/n... separated by blank lines
 - Add 2-3 relevant hashtags to the first tweet only
-- Punchy, direct tone — no fluff
+- Punchy, direct tone, but avoid generic hype
 - Max 10 tweets per thread`,
 
   threads: `FORMAT RULES:
@@ -26,13 +27,14 @@ export const PLATFORM_RULES = {
 - Max 500 characters total
 - Casual, conversational tone
 - Emoji OK but max 3
-- No hashtags required`,
+- No hashtags required
+- Sound like a useful share, not a press blurb`,
 
   facebook: `FORMAT RULES:
 - Plain text only — no markdown, no HTML
 - Optimal length: under 500 characters for engagement
 - Friendly, slightly more formal than X
-- End with a question to encourage comments
+- End with a real question only when it fits the article
 - Put link on its own line at the end`,
 };
 
@@ -43,18 +45,19 @@ export const PLATFORM_RULES = {
 export const HOOK_RULES = {
   telegram: {
     format: `QUY TẮC:
-- Vietnglish tự nhiên, xen tiếng Anh như dev Việt chat hàng ngày
-- CHỈ 1 đoạn, có thể có viewpoint nếu prompt style yêu cầu nhưng phải dựa trên article
+- Vietnglish tự nhiên, xen tiếng Anh như người làm IT Việt chat hàng ngày
+- CHỈ 1 đoạn, có thể có viewpoint nhẹ nếu có dữ kiện trong article
 - Tổng khoảng 300-500 ký tự
 - Link gốc ở cuối, paste thẳng URL
 - Dòng cuối cùng luôn là "— Dan Tech Daily News"
 - Emoji: tối đa 3 cái hoặc không, đừng spam
 - Dùng *bold* cho keyword quan trọng, 1-2 chỗ thôi
-- KHÔNG bắt đầu bằng emoji, KHÔNG dùng ## headers`,
+- KHÔNG bắt đầu bằng emoji, KHÔNG dùng ## headers
+- Tránh mở bài kiểu template: "Trong bối cảnh...", "Điều này quan trọng vì...", "Đây có thể là bước ngoặt..."`,
     examples: `VÍ DỤ TONE ĐÚNG (học cách viết, KHÔNG copy):
 
 ---
-Cloudflare vừa announce *Agent Lee* — basically 1 cái interface mới cho phép build AI agents chạy trực tiếp trên Cloudflare stack. Tích hợp Workers, KV, D1, R2 hết. Thay vì phải tự wire mọi thứ thì giờ có sẵn framework cho agentic workflows, chạy on edge nên latency thấp, cost rẻ.
+Cloudflare vừa giới thiệu *Agent Lee*. Điểm đáng chú ý không phải cái tên, mà là việc họ kéo Workers, KV, D1, R2 vào cùng một flow cho AI agents trên edge. Với team đang cân nhắc AI infrastructure, câu hỏi thực tế là nó giảm được bao nhiêu glue code và vận hành.
 
 https://blog.cloudflare.com/introducing-agent-lee/
 — Dan Tech Daily News
@@ -69,11 +72,12 @@ https://blog.cloudflare.com/introducing-agent-lee/
 - Include article URL
 - End with 2-3 relevant hashtags
 - Punchy, one key insight only
-- End with "— Dan Tech Daily News"`,
+- End with "— Dan Tech Daily News"
+- Avoid performative controversy or one-sided framing unless the article strongly supports it`,
     examples: `EXAMPLE TONE (learn style, DON'T copy):
 
 ---
-Cloudflare just dropped Agent Lee — build AI agents directly on CF Workers stack. KV, D1, R2 integrated. Edge-native, low latency. blog.cloudflare.com/agent-lee/ — Dan Tech Daily News #cloudflare #ai
+Cloudflare kéo AI agents về Workers stack với Agent Lee: KV/D1/R2 chung flow, ít glue code hơn. Team IT nên nhìn vào cost, ops và lock-in. blog.cloudflare.com/agent-lee/ — Dan Tech Daily News #cloudflare #ai
 ---`,
   },
 
@@ -81,14 +85,15 @@ Cloudflare just dropped Agent Lee — build AI agents directly on CF Workers sta
     format: `RULES:
 - Plain text only — NO markdown, NO *bold*
 - Max 500 characters
-- Vietnglish casual, like chatting with dev friends
+- Vietnglish casual, like sharing with IT peers
 - Include article URL on its own line
 - End with "— Dan Tech Daily News"
-- Emoji: 0-2, natural placement only`,
+- Emoji: 0-2, natural placement only
+- Avoid sounding like a launch announcement`,
     examples: `EXAMPLE TONE (learn style, DON'T copy):
 
 ---
-Cloudflare vừa ra Agent Lee — framework build AI agents chạy thẳng trên Workers stack. Tích hợp KV, D1, R2 luôn. Edge-native nên latency thấp, cost rẻ hơn cloud functions nhiều.
+Cloudflare vừa ra Agent Lee. Cái đáng để ý là họ đang gom runtime, storage và edge vào một flow cho AI agents, thay vì để team tự wire từng mảnh. Với IT teams, đây là bài toán tradeoff giữa tốc độ triển khai, vận hành và lock-in.
 
 blog.cloudflare.com/agent-lee/
 — Dan Tech Daily News
@@ -100,16 +105,16 @@ blog.cloudflare.com/agent-lee/
 - Plain text only — NO markdown
 - 300-500 characters optimal
 - Vietnglish friendly tone, slightly more formal than X
-- Summarize the key insight, explain why it matters
-- End with a question to encourage comments
+- Summarize the key insight with one concrete implication
+- End with a question only if it is specific and useful
 - Link on its own line
 - End with "— Dan Tech Daily News"`,
     examples: `EXAMPLE TONE (learn style, DON'T copy):
 
 ---
-Cloudflare vừa ra mắt Agent Lee — framework mới cho phép build AI agents chạy trực tiếp trên edge. Tích hợp sẵn Workers, KV, D1. Đây có thể là bước ngoặt cho ai đang build agentic workflows.
+Cloudflare vừa ra mắt Agent Lee, một flow mới để build AI agents trên Workers stack. Điểm đáng chú ý là KV, D1, R2 được kéo vào cùng runtime, nên phần glue code và vận hành có thể giảm khá nhiều.
 
-Bạn đang dùng gì để deploy AI agents?
+Với team IT, tradeoff giữa tốc độ triển khai, chi phí vận hành và lock-in nên được cân nhắc thế nào?
 
 blog.cloudflare.com/agent-lee/
 — Dan Tech Daily News

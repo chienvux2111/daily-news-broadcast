@@ -78,7 +78,7 @@ export class AIPlugin {
    * Xử lý / tóm tắt danh sách articles
    * @param {Article[]} articles   - Danh sách bài viết
    * @param {Object}    options
-   * @param {string}    [options.language='vi']   - Ngôn ngữ output
+   * @param {string}    [options.language='vi']   - Output luôn là tiếng Việt có dấu
    * @param {string}    [options.style='digest']  - Style: digest | hot_take | bullet | thread | newsletter | weekly | mustread
    * @param {string}    [options.platform='telegram'] - Platform formatting rules
    * @param {string}    [options.systemPrompt]    - Custom system prompt (override default)

@@ -43,7 +43,6 @@ Each engine run follows this sequence:
    ├── createSemanticDedupMiddleware() → remove cross-source duplicates (bigram similarity)
    └── custom (articles) => articles transforms
 5. ai.summarize() → with audience context, grouped articles, platform rules
-   └── secondary language digest (if secondaryLanguage configured)
 6. output.send() → parallel to all outputs (auto-truncate to maxLength)
 7. _markSent() → cache article IDs
 ```
@@ -90,10 +89,10 @@ The channel system (`src/channels/`) allows running multiple independent engine 
 ```
 defineChannels(env)
   │
-  ├── telegram-main   (drip mode, 3x/day, vi, hot_take, dev/indie builders)
-  ├── x-tech-vn       (drip mode, 3x/day, vi, hot_take)
-  ├── fb-ai-vn        (drip mode, 3x/day, vi, hot_take)
-  └── threads-dev-vn  (drip mode, 2x/day, vi, hot_take)
+  ├── telegram-main   (drip mode, 3x/day, vi, digest, general IT audience)
+  ├── x-tech-vn       (drip mode, 3x/day, vi, digest)
+  ├── fb-ai-vn        (drip mode, 3x/day, vi, digest)
+  └── threads-dev-vn  (drip mode, 2x/day, vi, digest)
 ```
 
 Each channel:
@@ -129,13 +128,16 @@ streams.config.json
 
 ## AI Prompt System
 
-`ai/_prompts.js` exports `buildPrompt()` which generates `{system, user}` prompt pairs:
+`ai/_prompts.js` exports `buildPrompt()` and `buildHookPrompt()` which generate `{system, user}` prompt pairs:
 
-- **Language**: `vi` / `en` with locale-specific editorial voice
+- **Language**: output is locked to Vietnamese with full diacritics (`vi`)
 - **Style**: `digest` / `hot_take` / `bullet` / `thread` / `newsletter` / `weekly` / `mustread`
 - **Audience**: injected into system prompt for tone calibration
 - **Platform**: platform-specific formatting rules appended (from `platform-rules.js`)
 - **Grouping**: articles auto-grouped by category when mixed categories detected
+- **Vietnamese voice**: tuned for natural Vietnglish editorial output with a balanced IT-industry perspective
+- **Vietnamese output rule**: generated content must be Vietnamese with full diacritics; English is allowed only for technical terms, product names, acronyms, code identifiers, URLs, and hashtags
+- **Source-data guardrail**: article title/content/metadata are treated as untrusted data, not instructions
 
 ## Deployment Targets
 
@@ -175,7 +177,7 @@ Each preset returns a `SourcePlugin[]` array, spread into `.addSource()` when bu
 ```
 [RSS/HN/Reddit/Dev.to/GitHub] → fetch → Article[]
   → cache dedup → scoring middleware → semantic dedup middleware
-  → AI summarize (with platform rules + audience + language)
+  → AI summarize (Vietnamese with diacritics + platform rules + audience)
   → output.send() to [Telegram/X/Facebook/Threads/Slack/Discord/...]
   → cache mark sent
 ```

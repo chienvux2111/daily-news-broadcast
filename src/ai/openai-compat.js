@@ -4,7 +4,7 @@
  */
 
 import { AIPlugin } from '../core/contracts.js';
-import { buildPrompt } from './_prompts.js';
+import { buildPrompt, VIETNAMESE_OUTPUT_RULES } from './_prompts.js';
 
 export class OpenAICompatibleAI extends AIPlugin {
   /**
@@ -31,6 +31,10 @@ export class OpenAICompatibleAI extends AIPlugin {
   async summarize(articles, options = {}) {
     const { language = 'vi', style = 'digest', audience, platform, systemPrompt, _rawUserPrompt, maxTokens = 4096 } = options;
     const prompt = buildPrompt(articles, { language, style, audience, platform });
+    const systemContent = systemPrompt || prompt.system;
+    const finalSystem = systemContent.includes(VIETNAMESE_OUTPUT_RULES)
+      ? systemContent
+      : `${systemContent}\n\n${VIETNAMESE_OUTPUT_RULES}`;
 
     const headers = {
       'Content-Type': 'application/json',
@@ -47,7 +51,7 @@ export class OpenAICompatibleAI extends AIPlugin {
         model: this._config.model,
         max_tokens: maxTokens,
         messages: [
-          { role: 'system', content: systemPrompt || prompt.system },
+          { role: 'system', content: finalSystem },
           { role: 'user', content: _rawUserPrompt || prompt.user },
         ],
         ...this._config.extraBody,

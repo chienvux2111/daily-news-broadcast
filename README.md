@@ -355,11 +355,11 @@ Instead of code, define streams in `streams.config.json`:
     "ai": {
       "provider": "claude",
       "apiKey": "$ANTHROPIC_API_KEY",
-      "style": "hot_take",
-      "audience": "dev Viet va indie builders dang ship AI/SaaS products",
+      "style": "digest",
+      "audience": "nguoi lam IT Viet Nam: developers, engineers, product, data, security, operations, technical leaders",
       "platform": "telegram"
     },
-    "outputs": [{ "type": "telegram", "config": { "botToken": "$TELEGRAM_BOT_TOKEN" } }]
+    "outputs": [{ "type": "telegram", "config": { "botToken": "$TELEGRAM_BOT_TOKEN", "chatId": "$TELEGRAM_CHAT_ID" } }]
   }]
 }
 ```
@@ -567,7 +567,7 @@ export const handler = async () => engine.run();
 | `CACHE_PATH` | ❌ | File cache path (default: `.cache/news.json`) |
 | `REDIS_URL` | ❌ | Redis connection URL |
 | `CRON_SCHEDULE` | ❌ | Cron expression (default: `0 7 * * *` = 14:00 VN) |
-| `SUMMARY_LANGUAGE` | ❌ | `vi` / `en` (default: `vi`) |
+| `SUMMARY_LANGUAGE` | ❌ | Output is locked to Vietnamese with diacritics (`vi`) |
 | `MAX_ARTICLES_PER_SOURCE` | ❌ | Default: `3` |
 | `CONCURRENCY_LIMIT` | ❌ | Parallel fetch limit (default: `5`) |
 | `DRIP_BATCH_SIZE` | ❌ | Articles per drip run (default: `5`) |
@@ -580,9 +580,9 @@ export const handler = async () => engine.run();
 engine.configure({
   concurrency: 5,              // Parallel source fetch
   maxArticlesPerSource: 5,     // Max articles per source
-  language: 'vi',              // Summary language
+  language: 'vi',              // Output is always Vietnamese with diacritics
   style: 'digest',             // digest | hot_take | bullet | thread | newsletter | weekly | mustread
-  audience: 'senior developers', // Target audience context for AI
+  audience: 'IT professionals',  // Target audience context for AI
   platform: 'telegram',       // Platform-specific formatting rules
   since: new Date('2025-01-01'), // Only articles after this date
 });

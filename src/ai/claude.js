@@ -3,7 +3,7 @@
  */
 
 import { AIPlugin } from '../core/contracts.js';
-import { buildPrompt } from './_prompts.js';
+import { buildPrompt, VIETNAMESE_OUTPUT_RULES } from './_prompts.js';
 
 export class ClaudeAI extends AIPlugin {
   /**
@@ -27,6 +27,10 @@ export class ClaudeAI extends AIPlugin {
   async summarize(articles, options = {}) {
     const { language = 'vi', style = 'digest', audience, platform, systemPrompt, _rawUserPrompt, maxTokens = 4096 } = options;
     const prompt = buildPrompt(articles, { language, style, audience, platform });
+    const systemContent = systemPrompt || prompt.system;
+    const finalSystem = systemContent.includes(VIETNAMESE_OUTPUT_RULES)
+      ? systemContent
+      : `${systemContent}\n\n${VIETNAMESE_OUTPUT_RULES}`;
 
     const response = await fetch(`${this._config.baseUrl}/v1/messages`, {
       method: 'POST',
@@ -38,7 +42,7 @@ export class ClaudeAI extends AIPlugin {
       body: JSON.stringify({
         model: this._config.model,
         max_tokens: maxTokens,
-        system: systemPrompt || prompt.system,
+        system: finalSystem,
         messages: [{ role: 'user', content: _rawUserPrompt || prompt.user }],
       }),
     });
