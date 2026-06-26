@@ -19,7 +19,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: daily-news-broadcast
+        working-directory: .
 
     steps:
       - name: Checkout repository
@@ -30,13 +30,13 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: daily-news-broadcast/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Restore file cache
         id: news-cache-restore
         uses: actions/cache/restore@v4
         with:
-          path: daily-news-broadcast/.cache/news.json
+          path: .cache/news.json
           key: news-cache-${{ github.run_id }}
           restore-keys: |
             news-cache-
@@ -87,5 +87,5 @@ jobs:
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: daily-news-broadcast/.cache/news.json
+          path: .cache/news.json
           key: news-cache-${{ github.run_id }}
