@@ -4,7 +4,7 @@
  */
 
 import { NewsEngine, MemoryCache } from '../core/index.js';
-import { RSSSource, HTMLScraperSource, HackerNewsSource, RedditSource, DevToSource, JSONAPISource } from '../sources/index.js';
+import { RSSSource, HTMLScraperSource, HackerNewsSource, RedditSource, DevToSource, JSONAPISource, XSource } from '../sources/index.js';
 import { ClaudeAI, openai, groq, gemini, ollama, openRouter, togetherAI, qwen, deepseek, OpenAICompatibleAI } from '../ai/index.js';
 import { TelegramOutput, SlackOutput, DiscordOutput, EmailOutput, WebhookOutput, MarkdownFileOutput } from '../outputs/index.js';
 import { bigTechBlogs, communitySources, aiMLBlogs, aiNewsSources, aiDeepDiveSources, devopsSources, mobileSources } from '../presets/index.js';
@@ -41,6 +41,7 @@ const SOURCE_FACTORIES = {
   reddit: (cfg) => new RedditSource(cfg),
   devto: (cfg) => new DevToSource(cfg),
   'json-api': (cfg) => new JSONAPISource(cfg),
+  x: (cfg) => new XSource(cfg),
 };
 
 const PRESET_FACTORIES = {
@@ -136,7 +137,7 @@ export function buildEngine(streamConfig) {
 
   const opts = streamConfig.options || {};
   engine.configure({
-    language: 'vi',
+    language: streamConfig.ai?.language || opts.language || 'vi',
     style: streamConfig.ai?.style || opts.style || 'digest',
     audience: streamConfig.ai?.audience || opts.audience || 'IT professionals',
     platform: streamConfig.ai?.platform || opts.platform || 'telegram',

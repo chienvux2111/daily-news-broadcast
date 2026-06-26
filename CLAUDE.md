@@ -238,7 +238,7 @@ CACHE_TYPE=file          # file | redis | memory
 CACHE_PATH=.cache/news.json
 REDIS_URL=redis://localhost:6379
 CRON_SCHEDULE=0 7 * * *  # 7:00 UTC = 14:00 VN
-SUMMARY_LANGUAGE=vi
+SUMMARY_LANGUAGE=en
 MAX_ARTICLES_PER_SOURCE=3
 CONCURRENCY_LIMIT=5
 ```

@@ -1,0 +1,131 @@
+{
+  "streams": [
+    {
+      "id": "crypto-education-digest",
+      "name": "Crypto Education Digest",
+      "enabled": true,
+      "cron": "0 8,20 * * *",
+      "timezone": "Asia/Bangkok",
+      "sources": [
+        {
+          "type": "rss",
+          "config": {
+            "id": "coindesk-learn",
+            "name": "CoinDesk",
+            "feedUrl": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+            "icon": "₿",
+            "category": "Crypto Education"
+          }
+        },
+        {
+          "type": "rss",
+          "config": {
+            "id": "cointelegraph",
+            "name": "Cointelegraph",
+            "feedUrl": "https://cointelegraph.com/rss",
+            "icon": "⚡",
+            "category": "Crypto Education"
+          }
+        }
+      ],
+      "ai": {
+        "provider": "groq",
+        "apiKey": "$GROQ_API_KEY",
+        "model": "llama-3.3-70b-versatile",
+        "language": "en",
+        "style": "digest",
+        "audience": "crypto beginners who want practical, step-by-step education about exchanges, fees, cashback, and account setup",
+        "platform": "telegram"
+      },
+      "outputs": [
+        {
+          "type": "telegram",
+          "config": {
+            "botToken": "$TELEGRAM_BOT_TOKEN",
+            "chatId": "$TELEGRAM_CHAT_ID"
+          }
+        }
+      ],
+      "options": {
+        "concurrency": 4,
+        "maxArticlesPerSource": 3
+      }
+    },
+    {
+      "id": "crypto-market-brief",
+      "name": "Crypto Market Brief",
+      "enabled": true,
+      "cron": "0 13,23 * * *",
+      "timezone": "Asia/Bangkok",
+      "sources": [
+        {
+          "type": "rss",
+          "config": {
+            "id": "coindesk-markets",
+            "name": "CoinDesk",
+            "feedUrl": "https://www.coindesk.com/arc/outboundfeeds/rss/",
+            "icon": "₿",
+            "category": "Crypto Market"
+          }
+        },
+        {
+          "type": "rss",
+          "config": {
+            "id": "theblock",
+            "name": "The Block",
+            "feedUrl": "https://www.theblock.co/rss.xml",
+            "icon": "🧱",
+            "category": "Crypto Market"
+          }
+        },
+        {
+          "type": "rss",
+          "config": {
+            "id": "bloomberg-markets",
+            "name": "Bloomberg Markets",
+            "feedUrl": "https://feeds.bloomberg.com/markets/news.rss",
+            "icon": "💼",
+            "category": "Macro & Markets"
+          }
+        },
+        {
+          "type": "x",
+          "config": {
+            "id": "x-crypto-watchlist",
+            "name": "X Crypto Watchlist",
+            "usernames": ["CoinDesk", "Cointelegraph", "TheBlock__"],
+            "bearerToken": "$X_BEARER_TOKEN",
+            "minEngagement": 50,
+            "maxResultsPerUser": 10,
+            "includeReplies": false,
+            "includeReposts": false,
+            "includeQuotes": true
+          }
+        }
+      ],
+      "ai": {
+        "provider": "groq",
+        "apiKey": "$GROQ_API_KEY",
+        "model": "llama-3.3-70b-versatile",
+        "language": "en",
+        "style": "hot_take",
+        "audience": "crypto traders and investors who want neutral market context without explicit buy or sell recommendations",
+        "platform": "telegram"
+      },
+      "outputs": [
+        {
+          "type": "telegram",
+          "config": {
+            "botToken": "$TELEGRAM_BOT_TOKEN",
+            "chatId": "$TELEGRAM_CHAT_ID"
+          }
+        }
+      ],
+      "options": {
+        "language": "en",
+        "concurrency": 4,
+        "maxArticlesPerSource": 4
+      }
+    }
+  ]
+}

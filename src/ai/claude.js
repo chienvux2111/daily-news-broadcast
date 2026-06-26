@@ -3,7 +3,7 @@
  */
 
 import { AIPlugin } from '../core/contracts.js';
-import { buildPrompt, VIETNAMESE_OUTPUT_RULES } from './_prompts.js';
+import { buildPrompt, VIETNAMESE_OUTPUT_RULES, ENGLISH_OUTPUT_RULES } from './_prompts.js';
 
 export class ClaudeAI extends AIPlugin {
   /**
@@ -28,9 +28,10 @@ export class ClaudeAI extends AIPlugin {
     const { language = 'vi', style = 'digest', audience, platform, systemPrompt, _rawUserPrompt, maxTokens = 4096 } = options;
     const prompt = buildPrompt(articles, { language, style, audience, platform });
     const systemContent = systemPrompt || prompt.system;
-    const finalSystem = systemContent.includes(VIETNAMESE_OUTPUT_RULES)
+    const languageRules = language === 'en' ? ENGLISH_OUTPUT_RULES : VIETNAMESE_OUTPUT_RULES;
+    const finalSystem = systemContent.includes(languageRules)
       ? systemContent
-      : `${systemContent}\n\n${VIETNAMESE_OUTPUT_RULES}`;
+      : `${systemContent}\n\n${languageRules}`;
 
     const response = await fetch(`${this._config.baseUrl}/v1/messages`, {
       method: 'POST',

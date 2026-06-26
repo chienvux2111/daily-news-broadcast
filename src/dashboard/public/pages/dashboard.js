@@ -29,6 +29,7 @@ function timeAgo(dateStr) {
 function sourceLabel(src) {
   if (src.type === 'preset') return src.preset;
   if (src.type === 'reddit') return `r/${src.config?.subreddit || 'reddit'}`;
+  if (src.type === 'x') return src.config?.name || `X: ${src.config?.usernames?.join(', ') || 'watchlist'}`;
   if (src.config?.name) return src.config.name;
   return src.type;
 }

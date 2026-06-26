@@ -96,7 +96,7 @@ export class NewsEngine {
   }
 
   configure(options) {
-    this.options = { ...this.options, ...options, language: 'vi', secondaryLanguage: null };
+    this.options = { ...this.options, ...options, secondaryLanguage: null };
     return this;
   }
 
@@ -157,7 +157,7 @@ export class NewsEngine {
     let aiUsage = null;
     if (this.ai) {
       const aiOpts = {
-        language: 'vi',
+        language: this.options.language,
         style: this.options.style,
         audience: this.options.audience,
         platform: this.options.platform,
@@ -281,13 +281,13 @@ export class NewsEngine {
       const article = batch[i];
       try {
         const hookPrompt = buildHookPrompt(article, {
-          language: 'vi',
+          language: this.options.language,
           style: this.options.style,
           audience: this.options.audience,
           platform: this.options.platform,
         });
         const aiResult = await this.ai.summarize([article], {
-          language: 'vi',
+          language: this.options.language,
           style: this.options.style,
           audience: this.options.audience,
           platform: this.options.platform,

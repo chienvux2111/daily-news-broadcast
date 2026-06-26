@@ -31,6 +31,7 @@ function sourceLabel(src) {
   if (src.type === 'reddit') return `🔴 r/${src.config?.subreddit || 'reddit'}`;
   if (src.type === 'hackernews') return `🟠 HN${src.config?.query ? `: ${src.config.query}` : ''}`;
   if (src.type === 'devto') return `🧑‍💻 Dev.to${src.config?.tag ? `: ${src.config.tag}` : ''}`;
+  if (src.type === 'x') return `𝕏 ${src.config?.usernames?.join(', ') || src.config?.name || 'X'}`;
   if (src.config?.name) return `📡 ${src.config.name}`;
   return `📡 ${src.type}`;
 }

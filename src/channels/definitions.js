@@ -3,9 +3,10 @@
  * All channel state derived from env at runtime
  */
 
-import { bigTechBlogs, aiNewsSources, aiDeepDiveSources } from '../presets/index.js';
+import { RSSSource, XSource } from '../sources/index.js';
 import { createAI } from '../ai/create-ai.js';
 import { TelegramOutput, XOutput, FacebookOutput, ThreadsOutput } from '../outputs/index.js';
+import { bigTechBlogs } from '../presets/index.js';
 import { KVTokenStore } from '../utils/token-store.js';
 
 /** Map provider name → env var for API key */
@@ -20,8 +21,8 @@ const PROVIDER_KEY_MAP = {
   together: 'TOGETHER_API_KEY',
   custom: 'CUSTOM_AI_API_KEY',
 };
-
-const IT_AUDIENCE = 'nguoi lam IT Viet Nam: developers, engineers, product, data, security, operations, technical leaders';
+const TRADING_AUDIENCE = 'traders, retail investors, and financial professionals';
+const IT_AUDIENCE = 'IT professionals';
 
 /**
  * Helper: resolve env value (works for both CF env object and process.env)
@@ -30,6 +31,18 @@ const IT_AUDIENCE = 'nguoi lam IT Viet Nam: developers, engineers, product, data
  * @param {string} [fallback]
  */
 function e(env, key, fallback) { return env[key] ?? fallback; }
+
+function eBool(env, key, fallback = false) {
+  const value = env[key];
+  if (value === undefined || value === null || value === '') return fallback;
+  return ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
+}
+
+function eList(env, key, fallback = []) {
+  const value = env[key];
+  if (!value) return fallback;
+  return String(value).split(',').map(item => item.trim()).filter(Boolean);
+}
 
 /** parseInt with NaN guard */
 function eInt(env, key, fallback) {
@@ -64,20 +77,84 @@ function makeAI(env) {
 export function defineChannels(env) {
   const channels = [];
 
-  // --- Telegram (tech blogs + AI news + AI deep-dives) ---
+  const telegramSources = [
+    new RSSSource({
+      id: 'coindesk',
+      name: 'CoinDesk',
+      feedUrl: 'https://www.coindesk.com/arc/outboundfeeds/rss/',
+      category: 'Crypto News',
+      icon: '₿',
+    }),
+    new RSSSource({
+      id: 'cointelegraph',
+      name: 'Cointelegraph',
+      feedUrl: 'https://cointelegraph.com/rss',
+      category: 'Crypto News',
+      icon: '⚡',
+    }),
+    new RSSSource({
+      id: 'theblock',
+      name: 'The Block',
+      feedUrl: 'https://www.theblock.co/rss.xml',
+      category: 'Crypto News',
+      icon: '🧱',
+    }),
+    new RSSSource({
+      id: 'bloomberg-markets',
+      name: 'Bloomberg Markets',
+      feedUrl: 'https://feeds.bloomberg.com/markets/news.rss',
+      category: 'Macro & Markets',
+      icon: '💼',
+    }),
+  ];
+
+  const xSourceUsers = eList(env, 'X_SOURCE_USERS', []);
+  if (env.X_BEARER_TOKEN && xSourceUsers.length > 0) {
+    telegramSources.push(new XSource({
+      id: 'x-crypto-watchlist',
+      name: 'X Crypto Watchlist',
+      usernames: xSourceUsers,
+      bearerToken: env.X_BEARER_TOKEN,
+      minEngagement: eInt(env, 'X_SOURCE_MIN_ENGAGEMENT', 50),
+      maxResultsPerUser: eInt(env, 'X_SOURCE_MAX_RESULTS_PER_USER', 10),
+      includeReplies: eBool(env, 'X_SOURCE_INCLUDE_REPLIES', false),
+      includeReposts: eBool(env, 'X_SOURCE_INCLUDE_REPOSTS', false),
+      includeQuotes: eBool(env, 'X_SOURCE_INCLUDE_QUOTES', true),
+      ...(env.X_SOURCE_KEYWORDS ? { cryptoKeywords: eList(env, 'X_SOURCE_KEYWORDS', []) } : {}),
+    }));
+  }
+
+  if (env.EXTRA_RSS_FEEDS) {
+    const extraFeeds = env.EXTRA_RSS_FEEDS
+      .split(',')
+      .map(feed => feed.trim())
+      .filter(Boolean);
+
+    extraFeeds.forEach((feedUrl, index) => {
+      telegramSources.push(new RSSSource({
+        id: `extra-feed-${index + 1}`,
+        name: `Extra Feed ${index + 1}`,
+        feedUrl,
+        category: 'Custom Feed',
+        icon: '📰',
+      }));
+    });
+  }
+
+  // --- Telegram (crypto + macro news) ---
   if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_CHAT_ID) {
     channels.push({
       id: 'telegram-main',
-      sources: [...bigTechBlogs(), ...aiNewsSources(), ...aiDeepDiveSources()],
+      sources: telegramSources,
       ai: makeAI(env),
       output: new TelegramOutput({
         botToken: env.TELEGRAM_BOT_TOKEN,
         chatId: env.TELEGRAM_CHAT_ID,
       }),
       prompt: {
-        language: 'vi',
+        language: e(env, 'SUMMARY_LANGUAGE', 'en'),
         style: 'digest',
-        audience: IT_AUDIENCE,
+        audience: e(env, 'TARGET_AUDIENCE', TRADING_AUDIENCE),
         platform: 'telegram',
       },
       mode: e(env, 'BROADCAST_MODE', 'drip'),

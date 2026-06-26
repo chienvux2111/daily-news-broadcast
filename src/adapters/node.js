@@ -8,11 +8,19 @@
 
 import { FileCache, RedisCache, MemoryCache } from '../core/index.js';
 import { buildEngine, defineChannels, runChannels } from '../channels/index.js';
+ 
+let envVars = {};
+try {
+  const { parse } = await import('dotenv');
+  const { readFile } = await import('node:fs/promises');
+  const envFileContent = await readFile('.env', 'utf-8');
+  // Read .env and let it override inherited shell values for predictable local runs.
+  envVars = { ...process.env, ...parse(envFileContent) };
+} catch (e) {
+  envVars = process.env; // Nếu không có file .env, quay lại dùng process.env
+}
 
-// Load .env
-try { const { config } = await import('dotenv'); config(); } catch {}
-
-function env(key, fallback) { return process.env[key] || fallback; }
+function env(key, fallback) { return envVars[key] ?? fallback; }
 
 function createCache() {
   const type = env('CACHE_TYPE', 'file');
@@ -24,7 +32,7 @@ function createCache() {
 }
 
 /** Filter channels by --channel flag or return all */
-function resolveChannels(channels, channelId) {
+function resolveChannels(channels, channelId, env) {
   if (!channelId) return channels;
   const found = channels.filter(c => c.id === channelId);
   if (found.length === 0) {
@@ -92,13 +100,13 @@ const force = args.includes('--force');
 const channelIdx = args.indexOf('--channel');
 const channelId = channelIdx !== -1 ? args[channelIdx + 1] : null;
 
-const allChannels = defineChannels(process.env);
+const allChannels = defineChannels(envVars);
 if (allChannels.length === 0) {
   console.error('❌ No channels configured. Check env vars (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID).');
   process.exit(1);
 }
 
-const channels = resolveChannels(allChannels, channelId);
+const channels = resolveChannels(allChannels, channelId, envVars);
 const cache = createCache();
 
 console.log(`📡 ${channels.length} channel(s): ${channels.map(c => c.id).join(', ')}`);

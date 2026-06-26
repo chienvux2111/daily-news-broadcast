@@ -9,10 +9,11 @@
 
 export const PLATFORM_RULES = {
   telegram: `FORMAT RULES:
-- Dùng Telegram formatting: *bold*, _italic_
-- KHÔNG dùng ## markdown headers
-- Tối đa 4000 ký tự
-- Giữ nhịp viết tự nhiên; đừng biến mỗi mục thành cùng một template`,
+- Use Telegram formatting: *bold*, _italic_
+- Do not use markdown headers like ##
+- Maximum 4000 characters
+- Keep the writing natural; do not force every item into the same template
+- Do not add any signature, footer, channel name, or branding line`,
 
   x: `FORMAT RULES:
 - Plain text only — no markdown, no HTML, no *bold* or _italic_
@@ -44,23 +45,22 @@ export const PLATFORM_RULES = {
 
 export const HOOK_RULES = {
   telegram: {
-    format: `QUY TẮC:
-- Vietnglish tự nhiên, xen tiếng Anh như người làm IT Việt chat hàng ngày
-- CHỈ 1 đoạn, có thể có viewpoint nhẹ nếu có dữ kiện trong article
-- Tổng khoảng 300-500 ký tự
-- Link gốc ở cuối, paste thẳng URL
-- Dòng cuối cùng luôn là "— Dan Tech Daily News"
-- Emoji: tối đa 3 cái hoặc không, đừng spam
-- Dùng *bold* cho keyword quan trọng, 1-2 chỗ thôi
-- KHÔNG bắt đầu bằng emoji, KHÔNG dùng ## headers
-- Tránh mở bài kiểu template: "Trong bối cảnh...", "Điều này quan trọng vì...", "Đây có thể là bước ngoặt..."`,
-    examples: `VÍ DỤ TONE ĐÚNG (học cách viết, KHÔNG copy):
+    format: `RULES:
+- Natural English for a Telegram crypto audience
+- Exactly one short paragraph, with a light viewpoint only when supported by the source
+- Around 300-500 characters
+- Put the original link at the end as a plain URL
+- No signature, no footer, no channel name, no branding line
+- Emoji: optional, maximum 2, never spammy
+- Use *bold* for one important keyword at most
+- Do not start with an emoji
+- Do not use markdown headers like ##`,
+    examples: `EXAMPLE TONE (learn the style, do not copy):
 
 ---
-Cloudflare vừa giới thiệu *Agent Lee*. Điểm đáng chú ý không phải cái tên, mà là việc họ kéo Workers, KV, D1, R2 vào cùng một flow cho AI agents trên edge. Với team đang cân nhắc AI infrastructure, câu hỏi thực tế là nó giảm được bao nhiêu glue code và vận hành.
+Circle's move matters less as a headline and more as a signal that crypto treasury strategy is becoming a mainstream corporate tool. The real question is whether this reflects durable balance-sheet demand or short-term narrative trading.
 
-https://blog.cloudflare.com/introducing-agent-lee/
-— Dan Tech Daily News
+https://www.coindesk.com/
 ---`,
   },
 
@@ -68,16 +68,16 @@ https://blog.cloudflare.com/introducing-agent-lee/
     format: `RULES:
 - Plain text only — NO markdown, NO *bold*, NO _italic_
 - Max 280 characters total (including URL)
-- Vietnglish natural tone, mix English tech terms
+- Natural English tone
 - Include article URL
 - End with 2-3 relevant hashtags
 - Punchy, one key insight only
-- End with "— Dan Tech Daily News"
+- No signature, no footer, no branding line
 - Avoid performative controversy or one-sided framing unless the article strongly supports it`,
     examples: `EXAMPLE TONE (learn style, DON'T copy):
 
 ---
-Cloudflare kéo AI agents về Workers stack với Agent Lee: KV/D1/R2 chung flow, ít glue code hơn. Team IT nên nhìn vào cost, ops và lock-in. blog.cloudflare.com/agent-lee/ — Dan Tech Daily News #cloudflare #ai
+Bitcoin ETF flows are still shaping short-term sentiment, but the bigger story is how liquidity is rotating across majors instead of broad risk-on behavior. https://www.coindesk.com/ #bitcoin #crypto
 ---`,
   },
 
@@ -85,18 +85,17 @@ Cloudflare kéo AI agents về Workers stack với Agent Lee: KV/D1/R2 chung flo
     format: `RULES:
 - Plain text only — NO markdown, NO *bold*
 - Max 500 characters
-- Vietnglish casual, like sharing with IT peers
+- Natural English, casual but clear
 - Include article URL on its own line
-- End with "— Dan Tech Daily News"
+- No signature, no footer, no branding line
 - Emoji: 0-2, natural placement only
 - Avoid sounding like a launch announcement`,
     examples: `EXAMPLE TONE (learn style, DON'T copy):
 
 ---
-Cloudflare vừa ra Agent Lee. Cái đáng để ý là họ đang gom runtime, storage và edge vào một flow cho AI agents, thay vì để team tự wire từng mảnh. Với IT teams, đây là bài toán tradeoff giữa tốc độ triển khai, vận hành và lock-in.
+This post is notable because it ties crypto adoption to a real capital markets event, not just social buzz. What matters now is whether the listing changes liquidity, access, or institutional confidence in the sector.
 
-blog.cloudflare.com/agent-lee/
-— Dan Tech Daily News
+https://www.coindesk.com/
 ---`,
   },
 
@@ -104,20 +103,17 @@ blog.cloudflare.com/agent-lee/
     format: `RULES:
 - Plain text only — NO markdown
 - 300-500 characters optimal
-- Vietnglish friendly tone, slightly more formal than X
+- Natural English tone, slightly more formal than X
 - Summarize the key insight with one concrete implication
 - End with a question only if it is specific and useful
 - Link on its own line
-- End with "— Dan Tech Daily News"`,
+- No signature, no footer, no branding line`,
     examples: `EXAMPLE TONE (learn style, DON'T copy):
 
 ---
-Cloudflare vừa ra mắt Agent Lee, một flow mới để build AI agents trên Workers stack. Điểm đáng chú ý là KV, D1, R2 được kéo vào cùng runtime, nên phần glue code và vận hành có thể giảm khá nhiều.
+This development stands out because it connects crypto momentum with a real financing and market access story. The key question is whether it reflects lasting institutional interest or a short-lived narrative boost.
 
-Với team IT, tradeoff giữa tốc độ triển khai, chi phí vận hành và lock-in nên được cân nhắc thế nào?
-
-blog.cloudflare.com/agent-lee/
-— Dan Tech Daily News
+https://www.coindesk.com/
 ---`,
   },
 };

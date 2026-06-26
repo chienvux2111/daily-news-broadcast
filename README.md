@@ -77,6 +77,49 @@ const engine = new NewsEngine()
 await engine.run();
 ```
 
+## Telegram Crypto Setup
+
+This repo can be used for an English-language crypto Telegram channel out of the box.
+
+### Env-based mode
+
+1. Copy `.env.example` to `.env`
+2. Set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and your AI key
+3. Keep `SUMMARY_LANGUAGE=en`
+4. Optionally add comma-separated RSS feeds in `EXTRA_RSS_FEEDS`
+5. Run:
+
+```bash
+npm install
+node src/adapters/node.js run --force
+```
+
+Default Telegram sources now include:
+- CoinDesk
+- Cointelegraph
+- The Block
+- Bloomberg Markets
+
+Optional X source:
+- Set `X_BEARER_TOKEN`
+- Set `X_SOURCE_USERS=CoinDesk,Cointelegraph,TheBlock__`
+- The engine will pull recent posts from those accounts, keep only crypto-relevant posts, rank them by engagement, then rewrite them before posting to Telegram
+
+### Dashboard / streams mode
+
+Use [`streams.crypto.example.json`](./streams.crypto.example.json) as a starting point for multi-stream scheduling:
+
+```bash
+cp streams.crypto.example.json streams.config.json
+node src/dashboard/server.js
+```
+
+Notes:
+- English output is now respected in stream configs via `ai.language: "en"`
+- The current repo supports RSS, HTML scraping, Reddit, and generic JSON APIs as inputs
+- X account posts are now supported through the `x` source type using `X_BEARER_TOKEN`
+- Pulling content from other Telegram groups still needs a dedicated source plugin or external ingestion pipeline
+
 ## Project Structure
 
 ```
@@ -525,6 +568,37 @@ node src/adapters/node.js cron
 docker compose up -d
 ```
 
+### GitHub Actions (cron job)
+
+Use GitHub Actions as the scheduler, and let the app run once per job:
+
+1. Add this workflow to the repo: [`.github/workflows/news-broadcast-cron.yml`](./.github/workflows/news-broadcast-cron.yml)
+2. In GitHub, open `Settings` → `Secrets and variables` → `Actions`
+3. Add the secrets you need:
+
+```text
+TELEGRAM_BOT_TOKEN
+TELEGRAM_CHAT_ID
+AI_PROVIDER
+GROQ_API_KEY            # or the API key that matches AI_PROVIDER
+SUMMARY_LANGUAGE        # optional, e.g. en or vi
+TARGET_AUDIENCE         # optional
+MAX_ARTICLES            # optional
+MAX_ARTICLES_PER_SOURCE # optional
+CONCURRENCY_LIMIT       # optional
+EXTRA_RSS_FEEDS         # optional
+BROADCAST_MODE          # optional: drip or digest
+DRIP_BATCH_SIZE         # optional
+DRIP_DELAY_MS           # optional
+```
+
+Notes:
+- GitHub Actions cron uses **UTC**, not Vietnam time
+- The included workflow is set to `0 7 * * *`, which runs at `14:00` in Vietnam (`Asia/Ho_Chi_Minh`) and Thailand (`Asia/Bangkok`)
+- The workflow runs `npm run start -- --force`, so GitHub Actions is the scheduler of record; you do **not** need `node src/adapters/node.js cron` inside Actions
+- `.cache/news.json` is restored/saved with `actions/cache` so the dedup cache survives between runs and helps avoid reposting the same items
+- If you want multiple run times per day, add more `schedule` entries in the workflow file
+
 ### Cloudflare Workers
 
 ```bash
@@ -566,7 +640,7 @@ export const handler = async () => engine.run();
 | `CACHE_TYPE` | ❌ | `file` / `redis` / `memory` (default: `file`) |
 | `CACHE_PATH` | ❌ | File cache path (default: `.cache/news.json`) |
 | `REDIS_URL` | ❌ | Redis connection URL |
-| `CRON_SCHEDULE` | ❌ | Cron expression (default: `0 7 * * *` = 14:00 VN) |
+| `CRON_SCHEDULE` | ❌ | Cron expression used by the app's internal scheduler (default in code: `0 1,7,13 * * *`, checked in UTC) |
 | `SUMMARY_LANGUAGE` | ❌ | Output is locked to Vietnamese with diacritics (`vi`) |
 | `MAX_ARTICLES_PER_SOURCE` | ❌ | Default: `3` |
 | `CONCURRENCY_LIMIT` | ❌ | Parallel fetch limit (default: `5`) |
