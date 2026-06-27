@@ -52,9 +52,7 @@ FORMAT:
 - Nhóm theo category (nếu articles có category khác nhau)
 - Mỗi bài: emoji + nguồn in đậm, tiêu đề, 2-3 câu: chuyện gì xảy ra → chi tiết đáng chú ý → implication/tradeoff cho ngành IT hoặc team kỹ thuật, link
 - Nếu bài có nhiều nguồn (alsoFrom), note "Cũng được report bởi: ..."
-- "💡 Điểm cần nhớ" — 2-3 insight cụ thể, không nói chung chung
-- "🤔 Câu hỏi mở" — 1 câu hỏi thật sự đáng bàn, bỏ qua nếu chỉ là câu kéo comment
-- Hashtags cuối`,
+- Không thêm "💡 Điểm cần nhớ", "🤔 Câu hỏi mở", hoặc hashtags trừ khi caller yêu cầu rõ`,
 
     en: (audience) => `You are a tech news curator & editorial analyst for ${audience}.
 
@@ -69,9 +67,7 @@ FORMAT:
 - Group by category when articles span multiple categories
 - Each article: emoji + bold source, title, 2-3 sentences of ANALYSIS with IT-wide tradeoffs, link
 - If article has multiple sources (alsoFrom), note "Also reported by: ..."
-- "💡 KEY TAKEAWAY" — 2-3 most important insights
-- "🤔 DISCUSSION" — 1 open question to encourage discussion
-- Hashtags at end`,
+- Do not add "💡 KEY TAKEAWAY", "🤔 DISCUSSION", or hashtags unless the caller explicitly asks for them`,
   },
 
   bullet: {
@@ -238,7 +234,10 @@ GÓC NHÌN:
 
 ${VIETNAMESE_VOICE}
 
-Được nêu 1 nhận định nhẹ nếu nó đến trực tiếp từ article. Không thêm opinion mạnh khi bài chỉ là release/update đơn giản.`);
+Được nêu 1 nhận định nhẹ nếu nó đến trực tiếp từ article. Không thêm opinion mạnh khi bài chỉ là release/update đơn giản.
+- Chỉ viết về đúng 1 article được cung cấp.
+- Không biến post thành digest nhiều bài hoặc bản tin tổng hợp.
+- Không thêm hashtags, bullet list, hoặc các mục "Điểm cần nhớ", "Câu hỏi mở".`);
 
   const structure = isEnglish
     ? (spicy
@@ -341,8 +340,12 @@ export function buildPrompt(articles, options = {}) {
   const articleList = formatArticleList(articles);
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
+  const isEnglish = language === 'en';
+
   return {
     system: `${systemPrompt}\n\n${SOURCE_DATA_RULES}\n\n${platformRules}`,
-    user: `Today is ${today}.\n\nHere is the list of articles:\n\n${articleList}\n\nPlease generate the content in English.`,
+    user: isEnglish
+      ? `Today is ${today}.\n\nHere is the list of articles:\n\n${articleList}\n\nPlease generate the content in natural English.`
+      : `Hôm nay là ${today}.\n\nĐây là danh sách bài viết:\n\n${articleList}\n\nHãy tạo nội dung bằng tiếng Việt có dấu đầy đủ.`,
   };
 }

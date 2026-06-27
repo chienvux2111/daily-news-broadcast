@@ -13,7 +13,9 @@ export const PLATFORM_RULES = {
 - Do not use markdown headers like ##
 - Maximum 4000 characters
 - Keep the writing natural; do not force every item into the same template
-- Do not add any signature, footer, channel name, or branding line`,
+- Do not add any signature, footer, channel name, or branding line
+- Do not add hashtags
+- Do not add "Key Takeaway", "Discussion", "Điểm cần nhớ", or "Câu hỏi mở" sections unless the caller explicitly asks for them`,
 
   x: `FORMAT RULES:
 - Plain text only — no markdown, no HTML, no *bold* or _italic_
@@ -47,10 +49,14 @@ export const HOOK_RULES = {
   telegram: {
     format: `RULES:
 - Natural English for a Telegram crypto audience
+- Exactly one short standalone post for exactly one article
 - Exactly one short paragraph, with a light viewpoint only when supported by the source
 - Around 300-500 characters
 - Put the original link at the end as a plain URL
 - No signature, no footer, no channel name, no branding line
+- No hashtags
+- Do not turn the post into a digest, roundup, category summary, or multi-article recap
+- Do not add bullet lists, "Key Takeaway", "Discussion", "Điểm cần nhớ", or "Câu hỏi mở"
 - Emoji: optional, maximum 2, never spammy
 - Use *bold* for one important keyword at most
 - Do not start with an emoji
