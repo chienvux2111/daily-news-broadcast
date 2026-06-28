@@ -3,7 +3,7 @@
  * All channel state derived from env at runtime
  */
 
-import { RSSSource } from '../sources/index.js';
+import { RSSSource, RedditSource, HackerNewsSource } from '../sources/index.js';
 import { createAI } from '../ai/create-ai.js';
 import { TelegramOutput, FacebookOutput, ThreadsOutput } from '../outputs/index.js';
 import { bigTechBlogs } from '../presets/index.js';
@@ -97,7 +97,23 @@ export function defineChannels(env) {
     }),
   ];
 
-  const telegramSources = [...rssSources];
+  const telegramSources = [
+    ...rssSources,
+    new RedditSource({
+      subreddit: 'CryptoCurrency',
+      sort: 'hot',
+      minUpvotes: 250,
+    }),
+    new RedditSource({
+      subreddit: 'Bitcoin',
+      sort: 'hot',
+      minUpvotes: 120,
+    }),
+    new HackerNewsSource({
+      query: 'bitcoin crypto ethereum stablecoin',
+      minPoints: 80,
+    }),
+  ];
 
   if (env.EXTRA_RSS_FEEDS) {
     const extraFeeds = env.EXTRA_RSS_FEEDS
