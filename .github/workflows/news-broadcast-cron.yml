@@ -73,7 +73,7 @@ jobs:
           BROADCAST_MODE: ${{ secrets.BROADCAST_MODE }}
           DRIP_BATCH_SIZE: ${{ secrets.DRIP_BATCH_SIZE }}
           DRIP_DELAY_MS: ${{ secrets.DRIP_DELAY_MS }}
-        run: npm run start -- --force
+        run: npm run start
 
       - name: Save file cache
         if: always()
