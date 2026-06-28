@@ -46,6 +46,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHANNEL_URL: ${{ secrets.TELEGRAM_CHANNEL_URL }}
+          THREADS_DRAFT_CHAT_ID: ${{ secrets.THREADS_DRAFT_CHAT_ID }}
           AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
           AI_MODEL: ${{ secrets.AI_MODEL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -68,14 +70,6 @@ jobs:
           MAX_ARTICLES_PER_SOURCE: ${{ secrets.MAX_ARTICLES_PER_SOURCE }}
           CONCURRENCY_LIMIT: ${{ secrets.CONCURRENCY_LIMIT }}
           EXTRA_RSS_FEEDS: ${{ secrets.EXTRA_RSS_FEEDS }}
-          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
-          X_SOURCE_USERS: ${{ secrets.X_SOURCE_USERS }}
-          X_SOURCE_MIN_ENGAGEMENT: ${{ secrets.X_SOURCE_MIN_ENGAGEMENT }}
-          X_SOURCE_MAX_RESULTS_PER_USER: ${{ secrets.X_SOURCE_MAX_RESULTS_PER_USER }}
-          X_SOURCE_INCLUDE_REPLIES: ${{ secrets.X_SOURCE_INCLUDE_REPLIES }}
-          X_SOURCE_INCLUDE_REPOSTS: ${{ secrets.X_SOURCE_INCLUDE_REPOSTS }}
-          X_SOURCE_INCLUDE_QUOTES: ${{ secrets.X_SOURCE_INCLUDE_QUOTES }}
-          X_SOURCE_KEYWORDS: ${{ secrets.X_SOURCE_KEYWORDS }}
           BROADCAST_MODE: ${{ secrets.BROADCAST_MODE }}
           DRIP_BATCH_SIZE: ${{ secrets.DRIP_BATCH_SIZE }}
           DRIP_DELAY_MS: ${{ secrets.DRIP_DELAY_MS }}

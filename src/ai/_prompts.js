@@ -172,7 +172,13 @@ Format: "⭐ MUST READ - [DD/MM/YYYY]"`,
  * @returns {{ system: string, user: string }}
  */
 export function buildHookPrompt(article, options = {}) {
-  const { language = 'vi', platform = 'telegram', style = 'digest', audience = 'người làm IT Việt Nam' } = options;
+  const {
+    language = 'vi',
+    platform = 'telegram',
+    style = 'digest',
+    audience = 'người làm IT Việt Nam',
+    telegramChannelUrl = '',
+  } = options;
   const meta = article.meta || {};
   const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const spicy = style === 'hot_take';
@@ -252,6 +258,27 @@ Nhận định cụ thể → chuyện gì xảy ra → tradeoff/điều team IT
 Chuyện gì đang xảy ra → chi tiết đáng chú ý → implication ngắn nếu có. Viết gọn, dễ hiểu, giữ thuật ngữ tech tiếng Anh. (3-5 câu)`);
 
   const outputRules = isEnglish ? ENGLISH_OUTPUT_RULES : VIETNAMESE_OUTPUT_RULES;
+  const channelDirectives = [];
+
+  if (platform === 'telegram') {
+    channelDirectives.push('Treat Telegram as the primary conversion channel. The post should feel complete on its own, not like a teaser.');
+    channelDirectives.push('If the source link fits naturally, blend it into the body or ending sentence without making it feel bolted on.');
+  }
+
+  if (platform === 'x' && telegramChannelUrl) {
+    channelDirectives.push(`Include this Telegram link as the primary CTA: ${telegramChannelUrl}`);
+    channelDirectives.push('Prioritize the Telegram CTA over the source URL when character count is tight.');
+  }
+
+  if (platform === 'threads') {
+    channelDirectives.push('This output is a semi-manual Threads draft that will be delivered to Telegram for copy/paste.');
+    channelDirectives.push('Do not include the source URL directly in the post body.');
+    channelDirectives.push('Use a CTA that points readers to the fuller Telegram post.');
+    channelDirectives.push('Use the phrase "link in bio" naturally.');
+    if (telegramChannelUrl) {
+      channelDirectives.push(`The Telegram destination for the CTA is: ${telegramChannelUrl}`);
+    }
+  }
 
   const system = `${editorialMode}
 
@@ -264,12 +291,14 @@ ${SOURCE_DATA_RULES}
 ${rules.examples}
 
 ${rules.format}
-- ${opener}`;
+- ${opener}
+${channelDirectives.length > 0 ? `\n${channelDirectives.map(line => `- ${line}`).join('\n')}` : ''}`;
 
   const articleInfo = [
     `Title: "${article.title}"`,
     `Source: ${article.source}`,
     `URL: ${article.url}`,
+    telegramChannelUrl ? `Telegram Channel: ${telegramChannelUrl}` : '',
     article.content ? `Content: ${article.content.substring(0, 800)}` : '',
     article.category ? `Category: ${article.category}` : '',
     meta.points ? `HN Points: ${meta.points}` : '',

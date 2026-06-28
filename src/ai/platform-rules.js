@@ -50,9 +50,9 @@ export const HOOK_RULES = {
     format: `RULES:
 - Natural English for a Telegram crypto audience
 - Exactly one short standalone post for exactly one article
-- Exactly one short paragraph, with a light viewpoint only when supported by the source
-- Around 300-500 characters
-- Put the original link at the end as a plain URL
+- Write a fuller Telegram post, not a teaser
+- Around 500-900 characters unless the source is too thin to support that length
+- The original link should be woven in naturally where it fits best, not forced as a detached footer
 - No signature, no footer, no channel name, no branding line
 - No hashtags
 - Do not turn the post into a digest, roundup, category summary, or multi-article recap
@@ -75,9 +75,11 @@ https://www.coindesk.com/
 - Plain text only — NO markdown, NO *bold*, NO _italic_
 - Max 280 characters total (including URL)
 - Natural English tone
-- Include article URL
-- End with 2-3 relevant hashtags
-- Punchy, one key insight only
+- Strong hook in the first sentence
+- Prefer driving traffic to Telegram when a Telegram URL is provided
+- If there is room after the main hook and Telegram CTA, you may keep the source URL; otherwise drop it
+- End with 0-2 relevant hashtags only if they still fit naturally
+- Keep to one sharp idea only
 - No signature, no footer, no branding line
 - Avoid performative controversy or one-sided framing unless the article strongly supports it`,
     examples: `EXAMPLE TONE (learn style, DON'T copy):
@@ -92,7 +94,11 @@ Bitcoin ETF flows are still shaping short-term sentiment, but the bigger story i
 - Plain text only — NO markdown, NO *bold*
 - Max 500 characters
 - Natural English, casual but clear
-- Include article URL on its own line
+- Write like a clean draft someone can paste into Threads manually
+- Keep it to 3-4 short lines
+- Do not paste the source URL directly
+- If a Telegram URL is provided, use it as the CTA destination
+- Use "link in bio" language instead of direct reference links
 - No signature, no footer, no branding line
 - Emoji: 0-2, natural placement only
 - Avoid sounding like a launch announcement`,
